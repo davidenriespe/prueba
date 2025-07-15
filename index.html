@@ -6,13 +6,38 @@
   <title>Geoportal de Reportes - Ecuador</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    html, body, #map {
+    html, body {
       height: 100%;
       margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    header {
+      background-color: #2c3e50;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      font-size: 20px;
+      margin: 0;
+    }
+    .header-buttons button {
+      margin-left: 10px;
+      padding: 8px 12px;
+      background-color: #3498db;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    #map {
+      height: calc(100% - 60px);
     }
     .form-popup {
       position: absolute;
-      top: 20px;
+      top: 80px;
       right: 20px;
       z-index: 1000;
       background: white;
@@ -21,13 +46,40 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
       max-width: 300px;
     }
+    label {
+      font-size: 14px;
+    }
+    input, select, textarea {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 6px;
+      font-size: 14px;
+    }
+    button.submit {
+      width: 100%;
+      padding: 10px;
+      background-color: #2ecc71;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+    }
   </style>
 </head>
 <body>
+  <header>
+    <h1>Geoportal de Reportes Ciudadanos - Ecuador</h1>
+    <div class="header-buttons">
+      <button onclick="cargarReportes()">Actualizar</button>
+      <button onclick="obtenerUbicacion()">📍 Mi ubicación</button>
+    </div>
+  </header>
+
   <div id="map"></div>
+
   <div class="form-popup">
     <form id="reporteForm">
-      <label>Nombre:<br><input type="text" name="nombre" required></label><br><br>
+      <label>Nombre:<br><input type="text" name="nombre" required></label>
       <label>Tipo:<br>
         <select name="tipo_problema" required>
           <option value="agua">Agua</option>
@@ -35,17 +87,17 @@
           <option value="vialidad">Vialidad</option>
           <option value="otros">Otros</option>
         </select>
-      </label><br><br>
-      <label>Observaciones:<br><textarea name="observaciones"></textarea></label><br><br>
-      <label>Latitud:<br><input type="number" name="latitud" step="any" required></label><br><br>
-      <label>Longitud:<br><input type="number" name="longitud" step="any" required></label><br><br>
-      <button type="submit">Enviar Reporte</button>
+      </label>
+      <label>Observaciones:<br><textarea name="observaciones"></textarea></label>
+      <label>Latitud:<br><input type="number" name="latitud" step="any" required></label>
+      <label>Longitud:<br><input type="number" name="longitud" step="any" required></label>
+      <button type="submit" class="submit">Enviar Reporte</button>
     </form>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const API_BASE = 'http://localhost:5000'; // Cambiar si está desplegado en otro host
+    const API_BASE = 'http://localhost:5000';
 
     const map = L.map('map').setView([-0.19, -78.5], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -94,6 +146,20 @@
       cargarReportes();
       alert('Reporte enviado.');
     });
+
+    function obtenerUbicacion() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+          document.querySelector('[name=latitud]').value = position.coords.latitude.toFixed(6);
+          document.querySelector('[name=longitud]').value = position.coords.longitude.toFixed(6);
+          map.setView([position.coords.latitude, position.coords.longitude], 15);
+        }, err => {
+          alert('No se pudo obtener tu ubicación.');
+        });
+      } else {
+        alert('Tu navegador no soporta geolocalización.');
+      }
+    }
 
     map.on('click', function(e) {
       document.querySelector('[name=latitud]').value = e.latlng.lat.toFixed(6);
