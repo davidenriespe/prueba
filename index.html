@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geoportal de Reportes - Ecuador</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body, #map {
+      height: 100%;
+      margin: 0;
+    }
+    .form-popup {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      max-width: 300px;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="form-popup">
+    <form id="reporteForm">
+      <label>Nombre:<br><input type="text" name="nombre" required></label><br><br>
+      <label>Tipo:<br>
+        <select name="tipo_problema" required>
+          <option value="agua">Agua</option>
+          <option value="seguridad">Seguridad</option>
+          <option value="vialidad">Vialidad</option>
+          <option value="otros">Otros</option>
+        </select>
+      </label><br><br>
+      <label>Observaciones:<br><textarea name="observaciones"></textarea></label><br><br>
+      <label>Latitud:<br><input type="number" name="latitud" step="any" required></label><br><br>
+      <label>Longitud:<br><input type="number" name="longitud" step="any" required></label><br><br>
+      <button type="submit">Enviar Reporte</button>
+    </form>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const API_BASE = 'http://localhost:5000'; // Cambiar si está desplegado en otro host
+
+    const map = L.map('map').setView([-0.19, -78.5], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const colores = {
+      agua: '#3498db',
+      seguridad: '#e74c3c',
+      vialidad: '#f39c12',
+      otros: '#9b59b6'
+    };
+
+    const capaReportes = L.layerGroup().addTo(map);
+
+    async function cargarReportes() {
+      const res = await fetch(`${API_BASE}/reportes`);
+      const datos = await res.json();
+      capaReportes.clearLayers();
+      datos.forEach(r => {
+        if (!r.latitud || !r.longitud) return;
+        const color = colores[r.tipo_problema] || 'gray';
+        L.circleMarker([r.latitud, r.longitud], {
+          radius: 8,
+          fillColor: color,
+          color: '#fff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8
+        }).bindPopup(`<strong>${r.tipo_problema.toUpperCase()}</strong><br>${r.nombre}<br>${r.observaciones || ''}`).addTo(capaReportes);
+      });
+    }
+
+    document.getElementById('reporteForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const form = e.target;
+      const data = Object.fromEntries(new FormData(form).entries());
+      data.latitud = parseFloat(data.latitud);
+      data.longitud = parseFloat(data.longitud);
+      await fetch(`${API_BASE}/reportes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      form.reset();
+      cargarReportes();
+      alert('Reporte enviado.');
+    });
+
+    map.on('click', function(e) {
+      document.querySelector('[name=latitud]').value = e.latlng.lat.toFixed(6);
+      document.querySelector('[name=longitud]').value = e.latlng.lng.toFixed(6);
+    });
+
+    cargarReportes();
+  </script>
+</body>
+</html>
