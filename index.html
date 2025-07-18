@@ -1,218 +1,115 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Geoportal Ciudadano</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <meta charset="UTF-8">
+  <title>Geoportal de Reportes - Ecuador</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: row;
-      height: 100vh;
-    }
-    #formulario {
-      width: 350px;
-      background-color: #f9f9f9;
-      padding: 20px;
-      overflow-y: auto;
-      border-right: 1px solid #ccc;
-    }
-    #map {
-      flex-grow: 1;
-    }
-    h2 {
-      margin-top: 0;
-    }
-    label, select, input, textarea {
-      width: 100%;
-      margin-bottom: 10px;
-    }
-    .layer-toggle {
-      margin-bottom: 10px;
-    }
+    #map { height: 80vh; }
+    form { padding: 10px; background: #f0f0f0; }
+    label { display: block; margin-top: 5px; }
   </style>
 </head>
 <body>
+  <h2>Geoportal de Reportes</h2>
 
-<div id="formulario">
-  <h2>Reporte Ciudadano</h2>
-  <form id="reporteForm">
-    <label>Nombre:</label>
-    <input type="text" id="nombre" required>
+  <div id="map"></div>
 
-    <label>Tipo de problema:</label>
-    <select id="problema" multiple size="6" required>
-      <option value="Fugas de agua">Fugas de agua</option>
-      <option value="Delincuencia">Delincuencia</option>
-      <option value="Vías en mal estado">Vías en mal estado</option>
-      <option value="Postes de luz deteriorados">Postes de luz deteriorados</option>
-      <option value="Cables caídos">Cables caídos</option>
-      <option value="Alcantarillas sin tapas">Alcantarillas sin tapas</option>
-    </select>
-
-    <label>Descripción:</label>
-    <textarea id="descripcion"></textarea>
-
-    <label>Ubicación seleccionada:</label>
-    <input type="text" id="latitud" readonly>
-    <input type="text" id="longitud" readonly>
-
-    <button type="submit">Guardar Reporte</button>
-    <button type="button" onclick="recargarReportes()">🔄 Ver Reportes</button>
+  <form id="formulario">
+    <h3>Registrar nuevo reporte</h3>
+    <label>Nombre: <input type="text" id="nombre" required /></label>
+    <label>Descripción: <input type="text" id="descripcion" required /></label>
+    <label>Latitud: <input type="number" step="0.0001" id="lat" required /></label>
+    <label>Longitud: <input type="number" step="0.0001" id="lon" required /></label>
+    <button type="submit">Enviar</button>
   </form>
 
-  <h3>Capas disponibles</h3>
-  <div id="capas"></div>
-</div>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<div id="map"></div>
+  <script>
+    const map = L.map('map').setView([-0.2299, -78.5249], 13); // Quito
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-  const supabaseUrl = "https://dbshhxslvsvwmrcwxkls.supabase.co";
-  const apiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRic2hoeHNsdnN2d21yY3d4a2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4MTExMzYsImV4cCI6MjA2ODM4NzEzNn0.O-TNkvxS0W8XLzkxNxIl2HYqRlib5MLM8_XW8JOEueo";
-  const capasNombres = ["capa1", "capa2", "capa3", "capa4", "capa5"]; // Reemplaza con tus tablas
+    // Base map
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
 
-  let map = L.map('map').setView([-1.8312, -78.1834], 6);
-  let marcador = null;
+    const supabaseUrl = "https://dbshhxslvsvwmrcwxkls.supabase.co";
+    const apiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRic2hoeHNsdnN2d21yY3d4a2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4MTExMzYsImV4cCI6MjA2ODM4NzEzNn0.O-TNkvxS0W8XLzkxNxIl2HYqRlib5MLM8_XW8JOEueo";
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
+    const capas = [
+      "ejes_viales",
+      "parques",
+      "parada_estacion",
+      "parr_rural_conali_a",
+      "parr_urbana_ord002_a"
+    ];
 
-  // Solicitar ubicación actual
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(pos => {
-      const { latitude, longitude } = pos.coords;
-      map.setView([latitude, longitude], 15);
-    });
-  }
-
-  // Al hacer clic en el mapa
-  map.on('click', function (e) {
-    const { lat, lng } = e.latlng;
-    document.getElementById('latitud').value = lat.toFixed(6);
-    document.getElementById('longitud').value = lng.toFixed(6);
-
-    if (marcador) {
-      marcador.setLatLng(e.latlng);
-    } else {
-      marcador = L.marker(e.latlng).addTo(map);
-    }
-  });
-
-  // Cargar capas
-  function cargarCapas() {
-    capasNombres.forEach(nombre => {
-      const capaCheckbox = document.createElement('input');
-      capaCheckbox.type = 'checkbox';
-      capaCheckbox.checked = true;
-
-      const label = document.createElement('label');
-      label.className = "layer-toggle";
-      label.innerText = nombre;
-
-      let capaLeaflet = L.layerGroup().addTo(map);
-
-      capaCheckbox.addEventListener('change', () => {
-        if (capaCheckbox.checked) {
-          map.addLayer(capaLeaflet);
-        } else {
-          map.removeLayer(capaLeaflet);
-        }
-      });
-
-      fetch(`${supabaseUrl}/rest/v1/${nombre}?select=*,geom`, {
+    async function cargarCapa(nombreTabla, estilo = {color: "blue", weight: 1}) {
+      const resp = await fetch(`${supabaseUrl}/rest/v1/${nombreTabla}?select=*&limit=1000`, {
         headers: {
           apikey: apiKey,
-          Authorization: `Bearer ${apiKey}`
+          Authorization: `Bearer ${apiKey}`,
         }
-      })
-      .then(res => res.json())
-      .then(data => {
-        data.forEach(feature => {
-          if (feature.geom && feature.geom.coordinates) {
-            const [lng, lat] = feature.geom.coordinates;
-            const punto = L.circleMarker([lat, lng], {
-              radius: 5,
-              color: 'blue'
-            }).bindPopup(nombre);
-            punto.addTo(capaLeaflet);
-          }
-        });
+      });
+      const datos = await resp.json();
+
+      const geojson = {
+        type: "FeatureCollection",
+        features: datos.map(d => ({
+          type: "Feature",
+          geometry: d.geom,
+          properties: d
+        }))
+      };
+
+      L.geoJSON(geojson, { style: estilo }).addTo(map);
+    }
+
+    capas.forEach(capa => {
+      cargarCapa(capa);
+    });
+
+    // FORMULARIO PARA NUEVOS REPORTES
+    document.getElementById("formulario").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById("nombre").value;
+      const descripcion = document.getElementById("descripcion").value;
+      const lat = parseFloat(document.getElementById("lat").value);
+      const lon = parseFloat(document.getElementById("lon").value);
+
+      const payload = {
+        nombre,
+        descripcion,
+        geom: {
+          type: "Point",
+          coordinates: [lon, lat]
+        }
+      };
+
+      const res = await fetch(`${supabaseUrl}/rest/v1/reportes`, {
+        method: "POST",
+        headers: {
+          apikey: apiKey,
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
       });
 
-      document.getElementById('capas').appendChild(capaCheckbox);
-      document.getElementById('capas').appendChild(label);
-    });
-  }
-
-  cargarCapas();
-
-  // Guardar reporte
-  document.getElementById('reporteForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const nombre = document.getElementById('nombre').value;
-    const problema = Array.from(document.getElementById('problema').selectedOptions).map(opt => opt.value).join(', ');
-    const descripcion = document.getElementById('descripcion').value;
-    const lat = parseFloat(document.getElementById('latitud').value);
-    const lon = parseFloat(document.getElementById('longitud').value);
-
-    const geojson = {
-      type: "Point",
-      coordinates: [lon, lat]
-    };
-
-    const res = await fetch(`${supabaseUrl}/rest/v1/reportes`, {
-      method: "POST",
-      headers: {
-        apikey: apiKey,
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        nombre,
-        tipo: problema,
-        descripcion,
-        geom: geojson
-      })
-    });
-
-    if (res.ok) {
-      alert("Reporte enviado con éxito");
-      document.getElementById('reporteForm').reset();
-      recargarReportes();
-    } else {
-      alert("Error al guardar");
-    }
-  });
-
-  // Ver todos los reportes
-  async function recargarReportes() {
-    const res = await fetch(`${supabaseUrl}/rest/v1/reportes?select=*`, {
-      headers: {
-        apikey: apiKey,
-        Authorization: `Bearer ${apiKey}`
+      if (res.ok) {
+        alert("¡Reporte enviado con éxito!");
+        location.reload();
+      } else {
+        alert("Error al enviar reporte.");
       }
     });
-    const datos = await res.json();
-    datos.forEach(rep => {
-      if (rep.geom) {
-        const [lon, lat] = rep.geom.coordinates;
-        const marker = L.circleMarker([lat, lon], {
-          color: 'red',
-          radius: 6
-        }).addTo(map).bindPopup(`<b>${rep.tipo}</b><br>${rep.descripcion}`);
-      }
-    });
-  }
-
-  recargarReportes();
-</script>
+  </script>
 </body>
 </html>
 
