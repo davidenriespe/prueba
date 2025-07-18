@@ -2,113 +2,143 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Geoportal de Reportes - Ecuador</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Leaflet CSS -->
+  <title>Geoportal Interactivo - Reportes Ciudadanos</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    #map { height: 80vh; }
-    form { padding: 10px; background: #f0f0f0; }
-    label { display: block; margin-top: 5px; }
+    body { margin: 0; font-family: sans-serif; }
+    #map { height: 100vh; }
+    #formulario {
+      position: absolute; top: 10px; left: 10px; z-index: 1000;
+      background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      width: 280px;
+    }
+    #formulario h3 { margin-top: 0; }
+    .layer-toggle {
+      position: absolute; top: 10px; right: 10px; background: white; z-index: 1000;
+      padding: 10px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
   </style>
 </head>
 <body>
-  <h2>Geoportal de Reportes</h2>
 
-  <div id="map"></div>
-
-  <form id="formulario">
-    <h3>Registrar nuevo reporte</h3>
-    <label>Nombre: <input type="text" id="nombre" required /></label>
-    <label>Descripción: <input type="text" id="descripcion" required /></label>
-    <label>Latitud: <input type="number" step="0.0001" id="lat" required /></label>
-    <label>Longitud: <input type="number" step="0.0001" id="lon" required /></label>
-    <button type="submit">Enviar</button>
+<div id="formulario">
+  <h3>Nuevo Reporte</h3>
+  <form id="reporteForm">
+    <label>Descripción:<br><textarea id="descripcion" required></textarea></label><br><br>
+    <label>Tipo de problema:</label><br>
+    <select id="problema" multiple size="6">
+      <option value="Fugas de agua">Fugas de agua</option>
+      <option value="Delincuencia">Delincuencia</option>
+      <option value="Vías en mal estado">Vías en mal estado</option>
+      <option value="Postes de luz deteriorados">Postes de luz deteriorados</option>
+      <option value="Cables caídos">Cables caídos</option>
+      <option value="Alcantarillas sin tapas">Alcantarillas sin tapas</option>
+    </select><br><br>
+    <button type="submit">Enviar Reporte</button>
+    <button type="button" onclick="cargarReportes()">Recargar</button>
   </form>
+</div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div class="layer-toggle">
+  <strong>Capas</strong><br>
+  <label><input type="checkbox" checked onchange="toggleLayer('ejes_viales')"> Ejes Viales</label><br>
+  <label><input type="checkbox" checked onchange="toggleLayer('parques')"> Parques</label><br>
+  <label><input type="checkbox" checked onchange="toggleLayer('parada_estacion')"> Paradas</label><br>
+  <label><input type="checkbox" checked onchange="toggleLayer('parr_rural_conali_a')"> Parroquia Rural</label><br>
+  <label><input type="checkbox" checked onchange="toggleLayer('parr_urbana_ord002_a')"> Parroquia Urbana</label>
+</div>
 
-  <script>
-    const map = L.map('map').setView([-0.2299, -78.5249], 13); // Quito
+<div id="map"></div>
 
-    // Base map
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const map = L.map('map').setView([-0.22985, -78.52495], 13);
 
-    const supabaseUrl = "https://dbshhxslvsvwmrcwxkls.supabase.co";
-    const apiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRic2hoeHNsdnN2d21yY3d4a2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4MTExMzYsImV4cCI6MjA2ODM4NzEzNn0.O-TNkvxS0W8XLzkxNxIl2HYqRlib5MLM8_XW8JOEueo";
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
 
-    const capas = [
-      "ejes_viales",
-      "parques",
-      "parada_estacion",
-      "parr_rural_conali_a",
-      "parr_urbana_ord002_a"
-    ];
+// Configuración Supabase
+const supabaseUrl = 'https://dbshhxslvsvwmrcwxkls.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRic2hoeHNsdnN2d21yY3d4a2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4MTExMzYsImV4cCI6MjA2ODM4NzEzNn0.O-TNkvxS0W8XLzkxNxIl2HYqRlib5MLM8_XW8JOEueo';
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-    async function cargarCapa(nombreTabla, estilo = {color: "blue", weight: 1}) {
-      const resp = await fetch(`${supabaseUrl}/rest/v1/${nombreTabla}?select=*&limit=1000`, {
-        headers: {
-          apikey: apiKey,
-          Authorization: `Bearer ${apiKey}`,
+// Capas vectoriales
+const capas = {};
+const nombresCapas = ['ejes_viales', 'parques', 'parada_estacion', 'parr_rural_conali_a', 'parr_urbana_ord002_a'];
+
+nombresCapas.forEach(nombre => {
+  capas[nombre] = L.layerGroup().addTo(map);
+  cargarCapa(nombre);
+});
+
+async function cargarCapa(nombreTabla) {
+  const { data, error } = await supabase.from(nombreTabla).select('*');
+  if (data) {
+    capas[nombreTabla].clearLayers();
+    data.forEach(f => {
+      if (f.geom?.coordinates) {
+        const tipo = f.geom.type;
+        if (tipo === 'Point') {
+          const [lon, lat] = f.geom.coordinates;
+          L.marker([lat, lon]).addTo(capas[nombreTabla]);
+        } else if (tipo === 'Polygon' || tipo === 'MultiPolygon') {
+          const coords = tipo === 'Polygon' ? [f.geom.coordinates] : f.geom.coordinates;
+          L.polygon(coords.map(r => r[0].map(([lon, lat]) => [lat, lon]))).addTo(capas[nombreTabla]);
         }
-      });
-      const datos = await resp.json();
-
-      const geojson = {
-        type: "FeatureCollection",
-        features: datos.map(d => ({
-          type: "Feature",
-          geometry: d.geom,
-          properties: d
-        }))
-      };
-
-      L.geoJSON(geojson, { style: estilo }).addTo(map);
-    }
-
-    capas.forEach(capa => {
-      cargarCapa(capa);
-    });
-
-    // FORMULARIO PARA NUEVOS REPORTES
-    document.getElementById("formulario").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const nombre = document.getElementById("nombre").value;
-      const descripcion = document.getElementById("descripcion").value;
-      const lat = parseFloat(document.getElementById("lat").value);
-      const lon = parseFloat(document.getElementById("lon").value);
-
-      const payload = {
-        nombre,
-        descripcion,
-        geom: {
-          type: "Point",
-          coordinates: [lon, lat]
-        }
-      };
-
-      const res = await fetch(`${supabaseUrl}/rest/v1/reportes`, {
-        method: "POST",
-        headers: {
-          apikey: apiKey,
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        alert("¡Reporte enviado con éxito!");
-        location.reload();
-      } else {
-        alert("Error al enviar reporte.");
       }
     });
-  </script>
+  }
+}
+
+function toggleLayer(nombre) {
+  if (map.hasLayer(capas[nombre])) {
+    map.removeLayer(capas[nombre]);
+  } else {
+    map.addLayer(capas[nombre]);
+  }
+}
+
+// Obtener ubicación actual
+map.locate({ setView: true, maxZoom: 16 });
+let ubicacionActual = null;
+map.on('locationfound', e => ubicacionActual = e.latlng);
+
+// Enviar nuevo reporte
+const form = document.getElementById('reporteForm');
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  const descripcion = document.getElementById('descripcion').value;
+  const problema = Array.from(document.getElementById('problema').selectedOptions).map(opt => opt.value);
+  if (!ubicacionActual) return alert('Ubicación no detectada');
+  const geom = { type: 'Point', coordinates: [ubicacionActual.lng, ubicacionActual.lat] };
+  const { error } = await supabase.from('reportes').insert({ descripcion, tipo: problema.join(', '), geom });
+  if (!error) {
+    alert('Reporte enviado');
+    form.reset();
+    cargarReportes();
+  }
+});
+
+// Cargar todos los reportes
+const capaReportes = L.layerGroup().addTo(map);
+async function cargarReportes() {
+  const { data } = await supabase.from('reportes').select('*');
+  capaReportes.clearLayers();
+  if (data) {
+    data.forEach(r => {
+      const { descripcion, tipo, geom } = r;
+      if (geom?.coordinates) {
+        const [lon, lat] = geom.coordinates;
+        L.marker([lat, lon]).addTo(capaReportes).bindPopup(`<strong>${tipo}</strong><br>${descripcion}`);
+      }
+    });
+  }
+}
+cargarReportes();
+</script>
+
 </body>
 </html>
