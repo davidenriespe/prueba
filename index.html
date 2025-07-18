@@ -574,39 +574,6 @@
             }
         }
 
-        // Enviar notificación por Telegram
-        async function enviarNotificacionTelegram(datos) {
-            const responsables = RESPONSABLES[datos.tipo_problema] || RESPONSABLES.otros;
-            
-            const mensaje = 🚨 NUEVO REPORTE RECIBIDO 🚨
-            
-📍 Tipo: ${datos.tipo_problema.toUpperCase()}
-👤 Reportado por: ${datos.nombre}
-📝 Observaciones: ${datos.observaciones || 'Sin observaciones'}
-🗺️ Ubicación: ${datos.latitud}, ${datos.longitud}
-📅 Fecha: ${new Date().toLocaleString('es-ES')}
-🌐 Ver en Google Maps: https://maps.google.com/?q=${datos.latitud},${datos.longitud};
-
-            const enviosPromesas = responsables.map(chatId => 
-                fetch(https://api.telegram.org/bot${BOT_TOKEN}/sendMessage, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: chatId,
-                        text: mensaje,
-                        parse_mode: 'HTML'
-                    })
-                })
-            );
-
-            try {
-                await Promise.all(enviosPromesas);
-                console.log('Notificaciones enviadas exitosamente');
-            } catch (error) {
-                console.error('Error al enviar notificaciones:', error);
-            }
-        }
-
         // Manejar envío del formulario
         document.getElementById('reporteForm').addEventListener('submit', async function(e) {
             e.preventDefault();
