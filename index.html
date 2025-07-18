@@ -2,78 +2,789 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Geoportal de Reportes</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-
+    <title>Reportes Ciudadanos - Quito</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; }
-        #map { width: 100%; height: 100vh; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .form-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        
+        .progress-bar {
+            display: flex;
+            background-color: #ecf0f1;
+            height: 10px;
+        }
+        
+        .progress-step {
+            flex: 1;
+            height: 100%;
+            background-color: #bdc3c7;
+            transition: background-color 0.3s;
+        }
+        
+        .progress-step.active {
+            background-color: #27ae60;
+        }
+        
+        .form-steps {
+            padding: 30px;
+        }
+        
+        .form-step {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .form-step.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: #27ae60;
+            outline: none;
+        }
+        
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .btn:hover {
+            background-color: #219653;
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid #3498db;
+            color: #3498db;
+        }
+        
+        .btn-outline:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .btn-secondary {
+            background-color: #3498db;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #2980b9;
+        }
+        
+        .step-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        
+        .category-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .category-option {
+            padding: 20px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .category-option:hover {
+            border-color: #27ae60;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .category-option.selected {
+            border-color: #27ae60;
+            background-color: #e8f5e9;
+        }
+        
+        .category-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #27ae60;
+        }
+        
+        .subcategory-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .subcategory-option {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .subcategory-option:hover {
+            border-color: #27ae60;
+            background-color: #f8f9fa;
+        }
+        
+        .subcategory-option.selected {
+            border-color: #27ae60;
+            background-color: #e8f5e9;
+        }
+        
+        #map-container {
+            height: 400px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .location-info {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            margin-top: 15px;
+            border: 1px solid #eee;
+            display: none;
+        }
+        
+        .confirmation-message {
+            padding: 20px;
+            background-color: #d4edda;
+            color: #155724;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .report-summary {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .report-summary p {
+            margin-bottom: 10px;
+        }
+        
+        .report-summary strong {
+            color: #2c3e50;
+        }
+        
+        .form-hint {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        .required-field::after {
+            content: " *";
+            color: #e74c3c;
+        }
+        
+        @media (max-width: 768px) {
+            .category-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .form-steps {
+                padding: 20px;
+            }
+        }
     </style>
 </head>
 <body>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-map-marked-alt"></i> Reportes Ciudadanos - Quito</h1>
+            <p>Reporta problemas en tu barrio o comunidad</p>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="form-container">
+            <div class="progress-bar">
+                <div class="progress-step" id="step-1-progress"></div>
+                <div class="progress-step" id="step-2-progress"></div>
+                <div class="progress-step" id="step-3-progress"></div>
+                <div class="progress-step" id="step-4-progress"></div>
+                <div class="progress-step" id="step-5-progress"></div>
+            </div>
+            
+            <div class="form-steps">
+                <!-- Paso 1: Selección de categoría -->
+                <div class="form-step active" id="step-1">
+                    <h2>1. Selecciona una categoría</h2>
+                    <p>Elige el tipo de problema que deseas reportar:</p>
+                    
+                    <div class="category-options">
+                        <div class="category-option" data-category="infraestructura">
+                            <div class="category-icon"><i class="fas fa-road"></i></div>
+                            <h3>Infraestructura Urbana</h3>
+                            <p>Problemas con calles, aceras, semáforos y señalización</p>
+                        </div>
+                        
+                        <div class="category-option" data-category="servicios">
+                            <div class="category-icon"><i class="fas fa-tools"></i></div>
+                            <h3>Servicios Públicos</h3>
+                            <p>Fugas de agua, postes de luz, recolección de basura</p>
+                        </div>
+                        
+                        <div class="category-option" data-category="seguridad">
+                            <div class="category-icon"><i class="fas fa-shield-alt"></i></div>
+                            <h3>Seguridad Ciudadana</h3>
+                            <p>Robos, vandalismo, iluminación pública</p>
+                        </div>
+                        
+                        <div class="category-option" data-category="emergencias">
+                            <div class="category-icon"><i class="fas fa-car-crash"></i></div>
+                            <h3>Emergencias Viales</h3>
+                            <p>Accidentes, vehículos abandonados, obstáculos</p>
+                        </div>
+                        
+                        <div class="category-option" data-category="ambiente">
+                            <div class="category-icon"><i class="fas fa-leaf"></i></div>
+                            <h3>Problemas Ambientales</h3>
+                            <p>Quemas, contaminación, tala de árboles, ruido</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step-navigation">
+                        <div></div> <!-- Espaciador -->
+                        <button type="button" class="btn" id="next-1">Siguiente <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+                
+                <!-- Paso 2: Selección de subcategoría -->
+                <div class="form-step" id="step-2">
+                    <h2>2. Tipo específico de problema</h2>
+                    <p>Selecciona el tipo específico del problema que deseas reportar:</p>
+                    
+                    <div class="form-group">
+                        <div id="subcategory-options" class="subcategory-options"></div>
+                    </div>
+                    
+                    <div class="step-navigation">
+                        <button type="button" class="btn btn-outline" id="prev-2"><i class="fas fa-arrow-left"></i> Anterior</button>
+                        <button type="button" class="btn" id="next-2">Siguiente <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+                
+                <!-- Paso 3: Información personal -->
+                <div class="form-step" id="step-3">
+                    <h2>3. Tus datos</h2>
+                    <p>Por favor ingresa tu información de contacto (opcional pero recomendado):</p>
+                    
+                    <div class="form-group">
+                        <label for="nombre" class="required-field">Nombre completo</label>
+                        <input type="text" id="nombre" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="telefono">Número de contacto</label>
+                        <input type="tel" id="telefono" class="form-control" placeholder="Ej: 0991234567">
+                        <div class="form-hint">Este número será usado solo para contactarte sobre tu reporte</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Correo electrónico</label>
+                        <input type="email" id="email" class="form-control" placeholder="tucorreo@ejemplo.com">
+                    </div>
+                    
+                    <div class="step-navigation">
+                        <button type="button" class="btn btn-outline" id="prev-3"><i class="fas fa-arrow-left"></i> Anterior</button>
+                        <button type="button" class="btn" id="next-3">Siguiente <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+                
+                <!-- Paso 4: Descripción del problema -->
+                <div class="form-step" id="step-4">
+                    <h2>4. Describe el problema</h2>
+                    <p>Proporciona detalles sobre el problema que estás reportando:</p>
+                    
+                    <div class="form-group">
+                        <label for="descripcion" class="required-field">Descripción detallada</label>
+                        <textarea id="descripcion" class="form-control" required placeholder="Describe el problema con el mayor detalle posible..."></textarea>
+                        <div class="form-hint">Incluye información como gravedad, tiempo que lleva el problema, etc.</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="foto">Subir foto (opcional)</label>
+                        <input type="file" id="foto" class="form-control" accept="image/*">
+                        <div class="form-hint">Máximo 5MB. Formatos: JPG, PNG</div>
+                    </div>
+                    
+                    <div class="step-navigation">
+                        <button type="button" class="btn btn-outline" id="prev-4"><i class="fas fa-arrow-left"></i> Anterior</button>
+                        <button type="button" class="btn" id="next-4">Siguiente <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+                
+                <!-- Paso 5: Ubicación -->
+                <div class="form-step" id="step-5">
+                    <h2>5. Ubicación del problema</h2>
+                    <p>Selecciona la ubicación exacta del problema en el mapa:</p>
+                    
+                    <div class="form-group">
+                        <label for="direccion">Dirección aproximada</label>
+                        <input type="text" id="direccion" class="form-control" placeholder="Ej: Av. Amazonas y Juan León Mera">
+                    </div>
+                    
+                    <div id="map-container">
+                        <div id="map"></div>
+                    </div>
+                    
+                    <div class="location-info" id="ubicacion-info">
+                        <i class="fas fa-map-marker-alt"></i> <span id="coordenadas-texto"></span>
+                    </div>
+                    <div class="form-hint">Haz clic en el mapa para marcar la ubicación exacta</div>
+                    
+                    <div class="step-navigation">
+                        <button type="button" class="btn btn-outline" id="prev-5"><i class="fas fa-arrow-left"></i> Anterior</button>
+                        <button type="button" class="btn" id="submit-reporte">Enviar Reporte <i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+                
+                <!-- Paso 6: Confirmación -->
+                <div class="form-step" id="step-6">
+                    <h2><i class="fas fa-check-circle" style="color: #27ae60;"></i> Reporte enviado con éxito</h2>
+                    
+                    <div class="confirmation-message">
+                        <p>¡Gracias por tu reporte! Hemos recibido la información y será procesada por las autoridades correspondientes.</p>
+                        <p>Tu número de seguimiento es: <strong id="codigo-seguimiento">QUITO-<span id="random-code"></span></strong></p>
+                    </div>
+                    
+                    <div class="report-summary">
+                        <h3>Resumen del reporte</h3>
+                        <div id="reporte-resumen"></div>
+                    </div>
+                    
+                    <div class="step-navigation" style="justify-content: center;">
+                        <button type="button" class="btn" id="new-reporte">
+                            <i class="fas fa-plus"></i> Hacer otro reporte
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<div id="map"></div>
-
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- Supabase JS -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.6/dist/umd/supabase.min.js"></script>
-
-<script>
-    // Credenciales de tu Supabase (asegúrate que sean públicas y seguras)
-    const supabaseUrl = "https://ikzktrqzyimxfpggedho.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-    // Crear el mapa Leaflet
-    const map = L.map("map").setView([-1.8312, -78.1834], 6); // Ecuador
-
-    // Capa base de OpenStreetMap
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap contributors"
-    }).addTo(map);
-
-    // Función para cargar reportes desde Supabase
-    async function cargarReportes() {
-        const { data, error } = await supabase
-            .from("Reportes")
-            .select("*")
-            .order("id", { ascending: false });
-
-        if (error) {
-            console.error("Error al cargar datos:", error.message);
-            return;
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Variables globales
+        let map;
+        let marker = null;
+        let selectedCategory = null;
+        let selectedSubcategory = null;
+        let currentStep = 1;
+        
+        // Subcategorías para cada categoría
+        const subcategories = {
+            infraestructura: [
+                'Baches en la vía',
+                'Semáforos dañados',
+                'Señalización faltante',
+                'Aceras en mal estado',
+                'Alcantarillas destapadas',
+                'Puentes o pasos peatonales dañados'
+            ],
+            servicios: [
+                'Fugas de agua potable',
+                'Postes de luz dañados',
+                'Cableado eléctrico peligroso',
+                'Recolección de basura irregular',
+                'Contenedores de basura llenos/dañados',
+                'Problemas con alcantarillado'
+            ],
+            seguridad: [
+                'Robos/asalos reportados',
+                'Puntos de drogas',
+                'Vandalismo',
+                'Iluminación pública insuficiente',
+                'Zonas peligrosas identificadas',
+                'Personas sospechosas merodeando'
+            ],
+            emergencias: [
+                'Accidentes de tránsito',
+                'Vehículos abandonados',
+                'Obstáculos en la vía',
+                'Conductor en estado de embriaguez',
+                'Exceso de velocidad en zona escolar',
+                'Animales sueltos en la vía'
+            ],
+            ambiente: [
+                'Quemas ilegales',
+                'Contaminación de quebradas',
+                'Tala de árboles',
+                'Acumulación de escombros',
+                'Ruido excesivo (bares, industrias)',
+                'Malos olores o contaminación del aire'
+            ]
+        };
+        
+        // Inicialización del mapa
+        function initMap() {
+            // Coordenadas del centro de Quito
+            const quitoCenter = [-0.2295, -78.5249];
+            
+            // Crear mapa
+            map = L.map('map').setView(quitoCenter, 14);
+            
+            // Añadir capa base
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+            
+            // Evento para hacer clic en el mapa
+            map.on('click', function(e) {
+                setLocation(e.latlng);
+            });
         }
-
-        if (!data || data.length === 0) {
-            alert("No hay reportes disponibles.");
-            return;
-        }
-
-        data.forEach(reporte => {
-            const lat = parseFloat(reporte.norte);
-            const lon = parseFloat(reporte.este);
-
-            if (!isNaN(lat) && !isNaN(lon)) {
-                const marker = L.marker([lat, lon]).addTo(map);
-                const popupContent = `
-                    <strong>Reporte ID:</strong> ${reporte.id}<br>
-                    <strong>Usuario:</strong> ${reporte.usuario || "N/A"}<br>
-                    <strong>Descripción:</strong> ${reporte.descripcion || "Sin descripción"}
-                `;
-                marker.bindPopup(popupContent);
+        
+        // Establecer ubicación seleccionada
+        function setLocation(latlng) {
+            // Eliminar marcador anterior si existe
+            if (marker) {
+                map.removeLayer(marker);
             }
+            
+            // Crear nuevo marcador
+            marker = L.marker(latlng, {
+                icon: L.divIcon({
+                    className: 'custom-marker',
+                    html: '<i class="fas fa-map-marker-alt" style="color: #e74c3c; font-size: 32px;"></i>',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32]
+                })
+            }).addTo(map);
+            
+            // Actualizar información de ubicación
+            document.getElementById('coordenadas-texto').textContent = 
+                `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
+            document.getElementById('ubicacion-info').style.display = 'block';
+        }
+        
+        // Cargar subcategorías según la categoría seleccionada
+        function loadSubcategories() {
+            const container = document.getElementById('subcategory-options');
+            container.innerHTML = '';
+            
+            if (!selectedCategory) return;
+            
+            subcategories[selectedCategory].forEach(subcat => {
+                const option = document.createElement('div');
+                option.className = 'subcategory-option';
+                option.textContent = subcat;
+                option.dataset.subcategory = subcat;
+                
+                option.addEventListener('click', function() {
+                    // Deseleccionar todas las opciones
+                    document.querySelectorAll('#subcategory-options .subcategory-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    // Seleccionar esta opción
+                    this.classList.add('selected');
+                    selectedSubcategory = this.dataset.subcategory;
+                });
+                
+                container.appendChild(option);
+            });
+        }
+        
+        // Navegación entre pasos
+        function goToStep(step) {
+            // Validar antes de avanzar
+            if (step > currentStep) {
+                if (currentStep === 1 && !selectedCategory) {
+                    alert('Por favor selecciona una categoría');
+                    return;
+                }
+                
+                if (currentStep === 2 && !selectedSubcategory) {
+                    alert('Por favor selecciona un tipo de problema');
+                    return;
+                }
+                
+                if (currentStep === 3) {
+                    const nombre = document.getElementById('nombre').value;
+                    if (!nombre) {
+                        alert('Por favor ingresa tu nombre');
+                        return;
+                    }
+                }
+                
+                if (currentStep === 4) {
+                    const descripcion = document.getElementById('descripcion').value;
+                    if (!descripcion) {
+                        alert('Por favor describe el problema');
+                        return;
+                    }
+                }
+            }
+            
+            // Ocultar paso actual
+            document.getElementById(`step-${currentStep}`).classList.remove('active');
+            
+            // Actualizar paso actual
+            currentStep = step;
+            
+            // Mostrar nuevo paso
+            document.getElementById(`step-${currentStep}`).classList.add('active');
+            
+            // Actualizar barra de progreso
+            updateProgressBar();
+            
+            // Configurar paso específico
+            if (currentStep === 2) {
+                loadSubcategories();
+            }
+            
+            if (currentStep === 6) {
+                showConfirmation();
+            }
+        }
+        
+        // Actualizar barra de progreso
+        function updateProgressBar() {
+            for (let i = 1; i <= 5; i++) {
+                const stepElement = document.getElementById(`step-${i}-progress`);
+                if (i < currentStep) {
+                    stepElement.classList.add('active');
+                } else if (i === currentStep) {
+                    stepElement.classList.add('active');
+                } else {
+                    stepElement.classList.remove('active');
+                }
+            }
+        }
+        
+        // Mostrar confirmación
+        function showConfirmation() {
+            // Generar código aleatorio
+            const randomCode = Math.floor(100000 + Math.random() * 900000);
+            document.getElementById('random-code').textContent = randomCode;
+            
+            // Mostrar resumen
+            const nombre = document.getElementById('nombre').value || 'No proporcionado';
+            const telefono = document.getElementById('telefono').value || 'No proporcionado';
+            const descripcion = document.getElementById('descripcion').value;
+            const direccion = document.getElementById('direccion').value || 'No especificada';
+            const coords = document.getElementById('coordenadas-texto').textContent || 'No seleccionada';
+            
+            const resumenHTML = `
+                <p><strong>Categoría:</strong> ${getCategoryName(selectedCategory)}</p>
+                <p><strong>Tipo de problema:</strong> ${selectedSubcategory}</p>
+                <p><strong>Descripción:</strong> ${descripcion}</p>
+                <p><strong>Dirección:</strong> ${direccion}</p>
+                <p><strong>Ubicación exacta:</strong> ${coords}</p>
+                <p><strong>Reportado por:</strong> ${nombre} (${telefono})</p>
+                <p><strong>Fecha y hora:</strong> ${new Date().toLocaleString()}</p>
+            `;
+            
+            document.getElementById('reporte-resumen').innerHTML = resumenHTML;
+        }
+        
+        // Obtener nombre completo de categoría
+        function getCategoryName(categoryKey) {
+            const names = {
+                infraestructura: 'Infraestructura Urbana',
+                servicios: 'Servicios Públicos',
+                seguridad: 'Seguridad Ciudadana',
+                emergencias: 'Emergencias Viales',
+                ambiente: 'Problemas Ambientales'
+            };
+            return names[categoryKey] || categoryKey;
+        }
+        
+        // Reiniciar formulario
+        function resetForm() {
+            // Resetear selecciones
+            selectedCategory = null;
+            selectedSubcategory = null;
+            
+            // Deseleccionar opciones
+            document.querySelectorAll('.category-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            document.querySelectorAll('.subcategory-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // Limpiar campos
+            document.getElementById('nombre').value = '';
+            document.getElementById('telefono').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('descripcion').value = '';
+            document.getElementById('direccion').value = '';
+            document.getElementById('foto').value = '';
+            
+            // Ocultar ubicación
+            document.getElementById('ubicacion-info').style.display = 'none';
+            
+            // Eliminar marcador del mapa
+            if (marker) {
+                map.removeLayer(marker);
+                marker = null;
+            }
+            
+            // Volver al paso 1
+            goToStep(1);
+        }
+        
+        // Eventos al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar mapa
+            initMap();
+            
+            // Selección de categoría
+            document.querySelectorAll('.category-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    // Deseleccionar todas las opciones
+                    document.querySelectorAll('.category-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    // Seleccionar esta opción
+                    this.classList.add('selected');
+                    selectedCategory = this.dataset.category;
+                });
+            });
+            
+            // Navegación entre pasos
+            document.getElementById('next-1').addEventListener('click', () => goToStep(2));
+            document.getElementById('next-2').addEventListener('click', () => goToStep(3));
+            document.getElementById('next-3').addEventListener('click', () => goToStep(4));
+            document.getElementById('next-4').addEventListener('click', () => goToStep(5));
+            
+            document.getElementById('prev-2').addEventListener('click', () => goToStep(1));
+            document.getElementById('prev-3').addEventListener('click', () => goToStep(2));
+            document.getElementById('prev-4').addEventListener('click', () => goToStep(3));
+            document.getElementById('prev-5').addEventListener('click', () => goToStep(4));
+            
+            // Enviar reporte
+            document.getElementById('submit-reporte').addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Validar ubicación
+                if (!marker) {
+                    alert('Por favor selecciona una ubicación en el mapa');
+                    return;
+                }
+                
+                // Ir a paso de confirmación
+                goToStep(6);
+            });
+            
+            // Nuevo reporte
+            document.getElementById('new-reporte').addEventListener('click', resetForm);
+            
+            // Actualizar barra de progreso inicial
+            updateProgressBar();
         });
-    }
-
-    // Ejecutar al cargar
-    cargarReportes();
-</script>
-
+    </script>
 </body>
 </html>
 
