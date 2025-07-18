@@ -1,208 +1,112 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Geoportal de Reportes Ciudadanos</title>
+  <meta charset="UTF-8">
+  <title>Geoportal de Reportes - Ecuador</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; font-family: 'Segoe UI', sans-serif; }
-
-    .header {
-      background: linear-gradient(135deg, #2c3e50, #3498db);
-      color: white;
-      padding: 10px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .header h1 { font-size: 20px; }
-
-    .btn {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .btn-primary {
-      background-color: #e74c3c;
-      color: white;
-    }
-
-    #map {
-      width: 100%;
-      height: calc(100vh - 60px);
-    }
-
-    .floating-form {
-      position: fixed;
-      top: 80px;
-      right: 20px;
-      width: 300px;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-      padding: 15px;
-      display: none;
-      z-index: 999;
-    }
-
-    .floating-form.active { display: block; }
-
-    .form-group { margin-bottom: 10px; }
-
-    .form-group label {
-      font-weight: 500;
-      margin-bottom: 5px;
-      display: block;
-    }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      width: 100%;
-      padding: 8px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
-
-    .legend {
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      background: rgba(255,255,255,0.95);
-      padding: 10px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    }
-
-    .legend div {
-      margin-bottom: 5px;
-      display: flex;
-      align-items: center;
-    }
-
-    .legend-color {
-      width: 15px;
-      height: 15px;
-      margin-right: 8px;
-      border-radius: 50%;
-    }
+    #map { height: 80vh; }
+    form { padding: 10px; background: #f0f0f0; }
+    label { display: block; margin-top: 5px; }
   </style>
 </head>
 <body>
+  <h2>Geoportal de Reportes</h2>
 
-  <!-- Header -->
-  <div class="header">
-    <h1>📍 Geoportal de Reportes</h1>
-    <button class="btn btn-primary" onclick="toggleForm()">📝 Nuevo Reporte</button>
-  </div>
-
-  <!-- Mapa -->
   <div id="map"></div>
 
-  <!-- Formulario Flotante -->
-  <div class="floating-form" id="formulario">
-    <form onsubmit="enviarReporte(event)">
-      <div class="form-group">
-        <label for="nombre">Nombre:</label>
-        <input type="text" id="nombre" required>
-      </div>
-      <div class="form-group">
-        <label for="tipo">Tipo de problema:</label>
-        <select id="tipo" required>
-          <option value="agua">Agua</option>
-          <option value="seguridad">Seguridad</option>
-          <option value="vialidad">Vialidad</option>
-          <option value="otros">Otros</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="latitud">Latitud:</label>
-        <input type="number" id="latitud" step="any" required>
-      </div>
-      <div class="form-group">
-        <label for="longitud">Longitud:</label>
-        <input type="number" id="longitud" step="any" required>
-      </div>
-      <div class="form-group">
-        <label for="obs">Observaciones:</label>
-        <textarea id="obs" rows="3"></textarea>
-      </div>
-      <button class="btn btn-primary" type="submit">Enviar</button>
-    </form>
-  </div>
-
-  <!-- Leyenda -->
-  <div class="legend">
-    <div><div class="legend-color" style="background:#3498db;"></div> Agua</div>
-    <div><div class="legend-color" style="background:#e74c3c;"></div> Seguridad</div>
-    <div><div class="legend-color" style="background:#f39c12;"></div> Vialidad</div>
-    <div><div class="legend-color" style="background:#9b59b6;"></div> Otros</div>
-  </div>
+  <form id="formulario">
+    <h3>Registrar nuevo reporte</h3>
+    <label>Nombre: <input type="text" id="nombre" required /></label>
+    <label>Descripción: <input type="text" id="descripcion" required /></label>
+    <label>Latitud: <input type="number" step="0.0001" id="lat" required /></label>
+    <label>Longitud: <input type="number" step="0.0001" id="lon" required /></label>
+    <button type="submit">Enviar</button>
+  </form>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    let map = L.map('map').setView([-0.1807, -78.4678], 7);
 
+  <script>
+    const map = L.map('map').setView([-0.2299, -78.5249], 13); // Quito
+
+    // Base map
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap'
+      maxZoom: 18,
+      attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    const colores = {
-      agua: '#3498db',
-      seguridad: '#e74c3c',
-      vialidad: '#f39c12',
-      otros: '#9b59b6'
-    };
+    const supabaseUrl = "https://dbshhxslvsvwmrcwxkls.supabase.co";
+    const apiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRic2hoeHNsdnN2d21yY3d4a2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4MTExMzYsImV4cCI6MjA2ODM4NzEzNn0.O-TNkvxS0W8XLzkxNxIl2HYqRlib5MLM8_XW8JOEueo";
 
-    function toggleForm() {
-      document.getElementById('formulario').classList.toggle('active');
+    const capas = [
+      "ejes_viales",
+      "parques",
+      "parada_estacion",
+      "parr_rural_conali_a",
+      "parr_urbana_ord002_a"
+    ];
+
+    async function cargarCapa(nombreTabla, estilo = {color: "blue", weight: 1}) {
+      const resp = await fetch(`${supabaseUrl}/rest/v1/${nombreTabla}?select=*&limit=1000`, {
+        headers: {
+          apikey: apiKey,
+          Authorization: `Bearer ${apiKey}`,
+        }
+      });
+      const datos = await resp.json();
+
+      const geojson = {
+        type: "FeatureCollection",
+        features: datos.map(d => ({
+          type: "Feature",
+          geometry: d.geom,
+          properties: d
+        }))
+      };
+
+      L.geoJSON(geojson, { style: estilo }).addTo(map);
     }
 
-    function enviarReporte(event) {
-      event.preventDefault();
-      const nombre = document.getElementById('nombre').value;
-      const tipo = document.getElementById('tipo').value;
-      const lat = parseFloat(document.getElementById('latitud').value);
-      const lng = parseFloat(document.getElementById('longitud').value);
-      const obs = document.getElementById('obs').value;
+    capas.forEach(capa => {
+      cargarCapa(capa);
+    });
 
-      const color = colores[tipo] || '#95a5a6';
+    // FORMULARIO PARA NUEVOS REPORTES
+    document.getElementById("formulario").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById("nombre").value;
+      const descripcion = document.getElementById("descripcion").value;
+      const lat = parseFloat(document.getElementById("lat").value);
+      const lon = parseFloat(document.getElementById("lon").value);
 
-      const marker = L.circleMarker([lat, lng], {
-        radius: 8,
-        fillColor: color,
-        color: '#fff',
-        weight: 1,
-        fillOpacity: 0.8
-      }).bindPopup(`
-        <strong>${tipo.toUpperCase()}</strong><br>
-        Reportado por: ${nombre}<br>
-        Observaciones: ${obs || 'Sin observaciones'}<br>
-        Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}
-      `).addTo(map);
+      const payload = {
+        nombre,
+        descripcion,
+        geom: {
+          type: "Point",
+          coordinates: [lon, lat]
+        }
+      };
 
-      map.setView([lat, lng], 14);
+      const res = await fetch(`${supabaseUrl}/rest/v1/reportes`, {
+        method: "POST",
+        headers: {
+          apikey: apiKey,
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
 
-      toggleForm();
-      event.target.reset();
-    }
-
-    // Autocompletar coordenadas al hacer clic en el mapa
-    map.on('click', e => {
-      document.getElementById('latitud').value = e.latlng.lat.toFixed(6);
-      document.getElementById('longitud').value = e.latlng.lng.toFixed(6);
-      if (!document.getElementById('formulario').classList.contains('active')) {
-        toggleForm();
+      if (res.ok) {
+        alert("¡Reporte enviado con éxito!");
+        location.reload();
+      } else {
+        alert("Error al enviar reporte.");
       }
     });
   </script>
