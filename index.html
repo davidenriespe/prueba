@@ -2,452 +2,78 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <title>Geoportal de Reportes</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal de Reportes - Quito</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; }
-        #map { height: 100vh; width: 100%; }
-        
-        .control-panel {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.2);
-            width: 350px;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        
-        .tabs { display: flex; margin-bottom: 15px; border-bottom: 1px solid #ddd; }
-        .tab-btn {
-            padding: 10px 15px;
-            background: none;
-            border: none;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-            font-weight: 600;
-            color: #555;
-            transition: all 0.3s;
-        }
-        .tab-btn.active {
-            color: #2c3e50;
-            border-bottom: 3px solid #4CAF50;
-        }
-        
-        .tab-content { display: none; padding: 10px 0; }
-        .tab-content.active { display: block; }
-        
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 500; color: #333; }
-        input, select, textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        textarea { min-height: 100px; resize: vertical; }
-        button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        button:hover { background: #3e8e41; }
-        button.secondary {
-            background: #3498db;
-        }
-        button.secondary:hover {
-            background: #2980b9;
-        }
-        
-        .message {
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 10px;
-            display: none;
-        }
-        .message.success { background: #d4edda; color: #155724; }
-        .message.error { background: #f8d7da; color: #721c24; }
-        .message.info { background: #d1ecf1; color: #0c5460; }
-        
-        .location-info {
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            font-size: 14px;
-            border: 1px solid #eee;
-        }
-        
-        #lista-reportes {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .reporte-item {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .reporte-item:hover {
-            background: #f8f9fa;
-        }
+        body, html { margin: 0; padding: 0; height: 100%; }
+        #map { width: 100%; height: 100vh; }
     </style>
 </head>
 <body>
-    <div id="map"></div>
-    
-    <div class="control-panel">
-        <h1 style="margin-bottom: 10px; color: #2c3e50;">
-            <i class="fas fa-map-marked-alt" style="color: #4CAF50;"></i> Geoportal Quito
-        </h1>
-        
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="reportar">
-                <i class="fas fa-plus-circle"></i> Reportar
-            </button>
-            <button class="tab-btn" data-tab="reportes">
-                <i class="fas fa-list"></i> Reportes
-            </button>
-        </div>
-        
-        <div id="reportar-tab" class="tab-content active">
-            <div class="form-group">
-                <label for="tipo-reporte">Tipo de Reporte</label>
-                <select id="tipo-reporte">
-                    <option value="incidente">Incidente</option>
-                    <option value="mantenimiento">Mantenimiento</option>
-                    <option value="seguridad">Seguridad</option>
-                    <option value="otro">Otro</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="descripcion">Descripción</label>
-                <textarea id="descripcion" placeholder="Describa el problema con detalle..."></textarea>
-            </div>
-            
-            <div id="ubicacion-info" class="location-info" style="display: none;">
-                <i class="fas fa-map-marker-alt"></i> <span id="coordenadas-texto"></span>
-            </div>
-            
-            <button id="enviar-reporte">
-                <i class="fas fa-paper-plane"></i> Enviar Reporte
-            </button>
-            
-            <div id="mensaje-estado" class="message"></div>
-        </div>
-        
-        <div id="reportes-tab" class="tab-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0;"><i class="fas fa-history"></i> Reportes Recientes</h3>
-                <button id="actualizar-reportes" class="secondary" style="padding: 8px 12px;">
-                    <i class="fas fa-sync-alt"></i> Actualizar
-                </button>
-            </div>
-            
-            <div id="lista-reportes">
-                <p style="text-align: center; color: #777;">Cargando reportes...</p>
-            </div>
-        </div>
-    </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    
-    <script>
-        // Configuración
-        const SUPABASE_URL = 'https://dbshhxslvsvwmrcwxkls.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRic2hoeHNsdnN2d21yY3d4a2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4MTExMzYsImV4cCI6MjA2ODM4NzEzNn0.O-TNkvxS0W8XLzkxNxIl2HYqRlib5MLM8_XW8JOEueo';
-        const CENTRO_QUITO = [-0.2295, -78.5249];
-        const ZOOM_INICIAL = 12;
-        
-        // Variables globales
-        let map;
-        let capaReportes;
-        let marcadorTemporal = null;
-        let ubicacionSeleccionada = null;
-        let supabaseClient;
-        
-        // Inicialización
-        async function initMap() {
-            try {
-                // Crear mapa
-                map = L.map('map').setView(CENTRO_QUITO, ZOOM_INICIAL);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                }).addTo(map);
-                
-                // Inicializar Supabase
-                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                
-                // Configurar eventos
-                configurarEventos();
-                
-                // Cargar reportes iniciales
-                await cargarReportes();
-                
-                // Evento para hacer clic en el mapa
-                map.on('click', function(e) {
-                    seleccionarUbicacion(e.latlng);
-                    cambiarPestaña('reportar');
-                });
-                
-            } catch (error) {
-                console.error('Error al inicializar:', error);
-                mostrarMensaje('Error al cargar el mapa', 'error');
-            }
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.6/dist/umd/supabase.min.js"></script>
+
+<script>
+    // Credenciales de tu Supabase (asegúrate que sean públicas y seguras)
+    const supabaseUrl = "https://ikzktrqzyimxfpggedho.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    // Crear el mapa Leaflet
+    const map = L.map("map").setView([-1.8312, -78.1834], 6); // Ecuador
+
+    // Capa base de OpenStreetMap
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    // Función para cargar reportes desde Supabase
+    async function cargarReportes() {
+        const { data, error } = await supabase
+            .from("Reportes")
+            .select("*")
+            .order("id", { ascending: false });
+
+        if (error) {
+            console.error("Error al cargar datos:", error.message);
+            return;
         }
-        
-        // Cargar reportes
-        async function cargarReportes() {
-            try {
-                mostrarMensaje('Cargando reportes...', 'info', 'reportes-tab');
-                
-                const { data: reportes, error } = await supabaseClient
-                    .from('reporte')  // Cambiado de 'reportes' a 'reporte'
-                    .select('*')
-                    .order('created_at', { ascending: false });
-                
-                if (error) throw error;
-                
-                // Actualizar mapa y lista
-                actualizarCapaReportes(reportes);
-                actualizarListaReportes(reportes);
-                
-                mostrarMensaje('Reportes cargados correctamente', 'success', 'reportes-tab', 3000);
-                
-            } catch (error) {
-                console.error('Error cargando reportes:', error);
-                mostrarMensaje('Error al cargar reportes', 'error', 'reportes-tab');
-            }
+
+        if (!data || data.length === 0) {
+            alert("No hay reportes disponibles.");
+            return;
         }
-        
-        function actualizarCapaReportes(reportes) {
-            // Eliminar capa anterior si existe
-            if (capaReportes) {
-                map.removeLayer(capaReportes);
-            }
-            
-            if (reportes && reportes.length > 0) {
-                capaReportes = L.layerGroup().addTo(map);
-                
-                reportes.forEach(reporte => {
-                    // Verificar si el reporte tiene coordenadas válidas
-                    if (reporte.geom && reporte.geom.coordinates && reporte.geom.coordinates.length === 2) {
-                        const marker = L.circleMarker(
-                            [reporte.geom.coordinates[1], reporte.geom.coordinates[0]], 
-                            {
-                                radius: 8,
-                                color: '#e74c3c',
-                                fillColor: '#c0392b',
-                                fillOpacity: 0.8
-                            }
-                        ).bindPopup(`
-                            <b>${reporte.tipo?.toUpperCase() || 'REPORTE'}</b><br>
-                            ${reporte.descripcion || 'Sin descripción'}<br>
-                            <small>${reporte.created_at ? new Date(reporte.created_at).toLocaleString() : 'Fecha desconocida'}</small>
-                        `);
-                        
-                        capaReportes.addLayer(marker);
-                    }
-                });
-            }
-        }
-        
-        function actualizarListaReportes(reportes) {
-            const lista = document.getElementById('lista-reportes');
-            
-            if (!reportes || reportes.length === 0) {
-                lista.innerHTML = '<p style="text-align: center; color: #777;">No hay reportes registrados</p>';
-                return;
-            }
-            
-            lista.innerHTML = '';
-            
-            reportes.forEach(reporte => {
-                const item = document.createElement('div');
-                item.className = 'reporte-item';
-                
-                // Verificar si el reporte tiene coordenadas
-                const tieneCoordenadas = reporte.geom && reporte.geom.coordinates && reporte.geom.coordinates.length === 2;
-                const coordenadas = tieneCoordenadas ? 
-                    `${reporte.geom.coordinates[1].toFixed(4)}, ${reporte.geom.coordinates[0].toFixed(4)}` : 
-                    'Ubicación no disponible';
-                
-                item.innerHTML = `
-                    <div style="display: flex; justify-content: space-between;">
-                        <strong style="color: #e74c3c;">${reporte.tipo?.toUpperCase() || 'SIN TIPO'}</strong>
-                        <small style="color: #777;">${reporte.created_at ? new Date(reporte.created_at).toLocaleString() : ''}</small>
-                    </div>
-                    <p style="margin: 5px 0; color: #333;">${reporte.descripcion || 'Sin descripción'}</p>
-                    <small style="color: #3498db;">
-                        <i class="fas fa-map-marker-alt"></i> ${coordenadas}
-                    </small>
+
+        data.forEach(reporte => {
+            const lat = parseFloat(reporte.norte);
+            const lon = parseFloat(reporte.este);
+
+            if (!isNaN(lat) && !isNaN(lon)) {
+                const marker = L.marker([lat, lon]).addTo(map);
+                const popupContent = `
+                    <strong>Reporte ID:</strong> ${reporte.id}<br>
+                    <strong>Usuario:</strong> ${reporte.usuario || "N/A"}<br>
+                    <strong>Descripción:</strong> ${reporte.descripcion || "Sin descripción"}
                 `;
-                
-                // Solo si tiene coordenadas, agregar evento para centrar el mapa
-                if (tieneCoordenadas) {
-                    item.addEventListener('click', () => {
-                        map.setView([reporte.geom.coordinates[1], reporte.geom.coordinates[0]], 16);
-                        // Abrir popup si existe
-                        capaReportes.eachLayer(layer => {
-                            if (layer.getLatLng().lat === reporte.geom.coordinates[1] && 
-                                layer.getLatLng().lng === reporte.geom.coordinates[0]) {
-                                layer.openPopup();
-                            }
-                        });
-                    });
-                }
-                
-                lista.appendChild(item);
-            });
-        }
-        
-        async function enviarReporte() {
-            const tipo = document.getElementById('tipo-reporte').value;
-            const descripcion = document.getElementById('descripcion').value;
-            
-            if (!descripcion) {
-                mostrarMensaje('Por favor ingresa una descripción', 'error');
-                return;
+                marker.bindPopup(popupContent);
             }
-            
-            if (!ubicacionSeleccionada) {
-                mostrarMensaje('Por favor selecciona una ubicación en el mapa', 'error');
-                return;
-            }
-            
-            try {
-                mostrarMensaje('Enviando reporte...', 'info');
-                
-                const { data, error } = await supabaseClient
-                    .from('reporte')  // Cambiado de 'reportes' a 'reporte'
-                    .insert([{
-                        tipo: tipo,
-                        descripcion: descripcion,
-                        geom: {
-                            type: 'Point',
-                            coordinates: [ubicacionSeleccionada.lng, ubicacionSeleccionada.lat]
-                        },
-                        estado: 'pendiente'
-                    }])
-                    .select();
-                
-                if (error) throw error;
-                
-                mostrarMensaje('Reporte enviado con éxito', 'success');
-                
-                // Limpiar formulario
-                document.getElementById('descripcion').value = '';
-                eliminarMarcadorTemporal();
-                ubicacionSeleccionada = null;
-                document.getElementById('ubicacion-info').style.display = 'none';
-                
-                // Actualizar reportes
-                await cargarReportes();
-                
-            } catch (error) {
-                console.error('Error enviando reporte:', error);
-                mostrarMensaje('Error al enviar reporte: ' + error.message, 'error');
-            }
-        }
-        
-        function seleccionarUbicacion(latlng) {
-            ubicacionSeleccionada = latlng;
-            eliminarMarcadorTemporal();
-            
-            marcadorTemporal = L.marker(latlng, {
-                icon: L.divIcon({
-                    className: 'marcador-temporal',
-                    html: '<i class="fas fa-map-marker-alt" style="color: #e74c3c; font-size: 24px;"></i>',
-                    iconSize: [24, 24]
-                }),
-                zIndexOffset: 1000
-            }).addTo(map);
-            
-            document.getElementById('coordenadas-texto').textContent = 
-                `${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`;
-            document.getElementById('ubicacion-info').style.display = 'block';
-        }
-        
-        function eliminarMarcadorTemporal() {
-            if (marcadorTemporal) {
-                map.removeLayer(marcadorTemporal);
-                marcadorTemporal = null;
-            }
-        }
-        
-        function configurarEventos() {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    cambiarPestaña(btn.dataset.tab);
-                });
-            });
-            
-            document.getElementById('enviar-reporte').addEventListener('click', enviarReporte);
-            document.getElementById('actualizar-reportes').addEventListener('click', cargarReportes);
-        }
-        
-        function cambiarPestaña(tab) {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.tab === tab);
-            });
-            
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.toggle('active', content.id === `${tab}-tab`);
-            });
-        }
-        
-        function mostrarMensaje(texto, tipo, tab = 'reportar-tab', tiempo = 5000) {
-            const mensaje = document.getElementById('mensaje-estado');
-            if (tab === 'reportes-tab') {
-                // Crear mensaje temporal en la pestaña de reportes
-                const tempMsg = document.createElement('div');
-                tempMsg.className = `message ${tipo}`;
-                tempMsg.textContent = texto;
-                tempMsg.style.marginTop = '10px';
-                tempMsg.style.marginBottom = '10px';
-                
-                const lista = document.getElementById('lista-reportes');
-                lista.prepend(tempMsg);
-                
-                if (tiempo > 0) {
-                    setTimeout(() => {
-                        tempMsg.remove();
-                    }, tiempo);
-                }
-            } else {
-                mensaje.textContent = texto;
-                mensaje.className = `message ${tipo}`;
-                mensaje.style.display = 'block';
-                
-                if (tiempo > 0 && tipo !== 'error') {
-                    setTimeout(() => {
-                        mensaje.style.display = 'none';
-                    }, tiempo);
-                }
-            }
-        }
-        
-        // Iniciar la aplicación
-        window.onload = initMap;
-    </script>
+        });
+    }
+
+    // Ejecutar al cargar
+    cargarReportes();
+</script>
+
 </body>
 </html>
+
