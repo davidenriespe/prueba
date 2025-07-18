@@ -279,6 +279,56 @@
             color: #e74c3c;
         }
         
+        .map-legend {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border-radius: 50%;
+        }
+        
+        .reports-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .view-toggle {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .view-toggle button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .view-toggle button.active {
+            background-color: #2c3e50;
+            color: white;
+        }
+        
         @media (max-width: 768px) {
             .category-options {
                 grid-template-columns: 1fr;
@@ -303,7 +353,20 @@
     </header>
     
     <div class="container">
-        <div class="form-container">
+        <div class="view-toggle">
+            <button id="view-reports-btn" class="active">Ver Reportes</button>
+            <button id="new-report-btn">Nuevo Reporte</button>
+        </div>
+        
+        <div class="reports-container" id="reports-view">
+            <h2><i class="fas fa-map"></i> Reportes Ciudadanos</h2>
+            <p>Visualiza los reportes existentes en el mapa:</p>
+            <div id="reports-map-container">
+                <div id="reports-map"></div>
+            </div>
+        </div>
+        
+        <div class="form-container" id="new-report-view" style="display: none;">
             <div class="progress-bar">
                 <div class="progress-step" id="step-1-progress"></div>
                 <div class="progress-step" id="step-2-progress"></div>
@@ -319,31 +382,31 @@
                     <p>Elige el tipo de problema que deseas reportar:</p>
                     
                     <div class="category-options">
-                        <div class="category-option" data-category="infraestructura">
+                        <div class="category-option" data-category="infraestructura_urbana">
                             <div class="category-icon"><i class="fas fa-road"></i></div>
                             <h3>Infraestructura Urbana</h3>
                             <p>Problemas con calles, aceras, semáforos y señalización</p>
                         </div>
                         
-                        <div class="category-option" data-category="servicios">
+                        <div class="category-option" data-category="servicios_publicos">
                             <div class="category-icon"><i class="fas fa-tools"></i></div>
                             <h3>Servicios Públicos</h3>
                             <p>Fugas de agua, postes de luz, recolección de basura</p>
                         </div>
                         
-                        <div class="category-option" data-category="seguridad">
+                        <div class="category-option" data-category="seguridad_ciudadana">
                             <div class="category-icon"><i class="fas fa-shield-alt"></i></div>
                             <h3>Seguridad Ciudadana</h3>
                             <p>Robos, vandalismo, iluminación pública</p>
                         </div>
                         
-                        <div class="category-option" data-category="emergencias">
+                        <div class="category-option" data-category="emergencias_viales">
                             <div class="category-icon"><i class="fas fa-car-crash"></i></div>
                             <h3>Emergencias Viales</h3>
                             <p>Accidentes, vehículos abandonados, obstáculos</p>
                         </div>
                         
-                        <div class="category-option" data-category="ambiente">
+                        <div class="category-option" data-category="problemas_ambientales">
                             <div class="category-icon"><i class="fas fa-leaf"></i></div>
                             <h3>Problemas Ambientales</h3>
                             <p>Quemas, contaminación, tala de árboles, ruido</p>
@@ -471,17 +534,25 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
     <script>
         // Variables globales
         let map;
+        let reportsMap;
         let marker = null;
         let selectedCategory = null;
         let selectedSubcategory = null;
         let currentStep = 1;
+        let markersLayer = L.layerGroup();
+        
+        // Configuración de Supabase
+        const supabaseUrl = 'https://dbshhxslvsvwmrcwxkls.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRic2hoeHNsdnN2d21yY3d4a2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4MTExMzYsImV4cCI6MjA2ODM4NzEzNn0.O-TNkvxS0W8XLzkxNxIl2HYqRlib5MLM8_XW8JOEueo';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         
         // Subcategorías para cada categoría
         const subcategories = {
-            infraestructura: [
+            infraestructura_urbana: [
                 'Baches en la vía',
                 'Semáforos dañados',
                 'Señalización faltante',
@@ -489,7 +560,7 @@
                 'Alcantarillas destapadas',
                 'Puentes o pasos peatonales dañados'
             ],
-            servicios: [
+            servicios_publicos: [
                 'Fugas de agua potable',
                 'Postes de luz dañados',
                 'Cableado eléctrico peligroso',
@@ -497,7 +568,7 @@
                 'Contenedores de basura llenos/dañados',
                 'Problemas con alcantarillado'
             ],
-            seguridad: [
+            seguridad_ciudadana: [
                 'Robos/asalos reportados',
                 'Puntos de drogas',
                 'Vandalismo',
@@ -505,7 +576,7 @@
                 'Zonas peligrosas identificadas',
                 'Personas sospechosas merodeando'
             ],
-            emergencias: [
+            emergencias_viales: [
                 'Accidentes de tránsito',
                 'Vehículos abandonados',
                 'Obstáculos en la vía',
@@ -513,7 +584,7 @@
                 'Exceso de velocidad en zona escolar',
                 'Animales sueltos en la vía'
             ],
-            ambiente: [
+            problemas_ambientales: [
                 'Quemas ilegales',
                 'Contaminación de quebradas',
                 'Tala de árboles',
@@ -523,8 +594,59 @@
             ]
         };
         
-        // Inicialización del mapa
-        function initMap() {
+        // Colores para cada categoría en el mapa
+        const categoryColors = {
+            infraestructura_urbana: '#e74c3c',  // Rojo
+            servicios_publicos: '#3498db',      // Azul
+            seguridad_ciudadana: '#f39c12',     // Naranja
+            emergencias_viales: '#9b59b6',      // Morado
+            problemas_ambientales: '#2ecc71'    // Verde
+        };
+        
+        // Inicialización del mapa de reportes
+        function initReportsMap() {
+            // Coordenadas del centro de Quito
+            const quitoCenter = [-0.2295, -78.5249];
+            
+            // Crear mapa
+            reportsMap = L.map('reports-map').setView(quitoCenter, 13);
+            
+            // Añadir capa base
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(reportsMap);
+            
+            // Añadir capa de marcadores
+            markersLayer.addTo(reportsMap);
+            
+            // Añadir leyenda
+            const legend = L.control({position: 'bottomright'});
+            
+            legend.onAdd = function() {
+                const div = L.DomUtil.create('div', 'map-legend');
+                let labels = ['<strong>Categorías</strong>'];
+                
+                for (const category in categoryColors) {
+                    labels.push(
+                        `<div class="legend-item">
+                            <div class="legend-color" style="background:${categoryColors[category]}"></div>
+                            <span>${getCategoryName(category)}</span>
+                        </div>`
+                    );
+                }
+                
+                div.innerHTML = labels.join('');
+                return div;
+            };
+            
+            legend.addTo(reportsMap);
+            
+            // Cargar reportes existentes
+            loadExistingReports();
+        }
+        
+        // Inicialización del mapa para nuevo reporte
+        function initNewReportMap() {
             // Coordenadas del centro de Quito
             const quitoCenter = [-0.2295, -78.5249];
             
@@ -540,6 +662,40 @@
             map.on('click', function(e) {
                 setLocation(e.latlng);
             });
+        }
+        
+        // Cargar reportes existentes desde Supabase
+        async function loadExistingReports() {
+            markersLayer.clearLayers();
+            
+            const tablas = Object.keys(subcategories);
+            
+            for (const tabla of tablas) {
+                const { data, error } = await supabase.from(tabla).select('*');
+                
+                if (error) {
+                    console.error(`Error cargando ${tabla}:`, error.message);
+                    continue;
+                }
+                
+                data.forEach(reporte => {
+                    if (reporte.geom && reporte.geom.coordinates) {
+                        const coords = reporte.geom.coordinates;
+                        const marker = L.circleMarker([coords[1], coords[0]], {
+                            color: categoryColors[tabla],
+                            radius: 6,
+                            fillOpacity: 0.7
+                        }).addTo(markersLayer);
+                        
+                        let popupContent = `<strong>${getCategoryName(tabla)}</strong>`;
+                        if (reporte.subcategoria) popupContent += `<br><em>${reporte.subcategoria}</em>`;
+                        if (reporte.descripcion) popupContent += `<br>${reporte.descripcion}`;
+                        if (reporte.fecha_reporte) popupContent += `<br><small>Reportado el ${new Date(reporte.fecha_reporte).toLocaleDateString()}</small>`;
+                        
+                        marker.bindPopup(popupContent);
+                    }
+                });
+            }
         }
         
         // Establecer ubicación seleccionada
@@ -684,16 +840,80 @@
             `;
             
             document.getElementById('reporte-resumen').innerHTML = resumenHTML;
+            
+            // Enviar datos a Supabase
+            enviarReporteASupabase();
+        }
+        
+        // Enviar reporte a Supabase
+        async function enviarReporteASupabase() {
+            if (!selectedCategory || !marker) return;
+            
+            const reportData = {
+                subcategoria: selectedSubcategory,
+                nombre_reportero: document.getElementById('nombre').value || null,
+                telefono_reportero: document.getElementById('telefono').value || null,
+                email_reportero: document.getElementById('email').value || null,
+                descripcion: document.getElementById('descripcion').value,
+                direccion: document.getElementById('direccion').value || null,
+                geom: {
+                    type: 'Point',
+                    coordinates: [marker.getLatLng().lng, marker.getLatLng().lat]
+                },
+                fecha_reporte: new Date().toISOString(),
+                estado: 'pendiente'
+            };
+            
+            try {
+                // Manejar la foto si se subió
+                const fotoInput = document.getElementById('foto');
+                if (fotoInput.files.length > 0) {
+                    const file = fotoInput.files[0];
+                    const fileName = `${selectedCategory}_${Date.now()}_${file.name}`;
+                    
+                    // Subir la foto al almacenamiento
+                    const { error: uploadError } = await supabase.storage
+                        .from('reportes-fotos')
+                        .upload(fileName, file);
+                    
+                    if (!uploadError) {
+                        // Obtener URL pública de la foto
+                        const { data: urlData } = supabase.storage
+                            .from('reportes-fotos')
+                            .getPublicUrl(fileName);
+                        
+                        reportData.foto_url = urlData.publicUrl;
+                    }
+                }
+                
+                // Insertar en la tabla correspondiente
+                const { data, error } = await supabase
+                    .from(selectedCategory)
+                    .insert([reportData])
+                    .select();
+                
+                if (error) {
+                    console.error('Error al enviar reporte:', error.message);
+                    alert('Hubo un error al enviar tu reporte. Por favor intenta nuevamente.');
+                } else {
+                    console.log('Reporte enviado con éxito:', data);
+                    // Actualizar el mapa de reportes
+                    loadExistingReports();
+                }
+            } catch (err) {
+                console.error('Error en el proceso de envío:', err);
+                alert('Ocurrió un error inesperado. Por favor intenta nuevamente.');
+            }
         }
         
         // Obtener nombre completo de categoría
         function getCategoryName(categoryKey) {
             const names = {
-                infraestructura: 'Infraestructura Urbana',
-                servicios: 'Servicios Públicos',
-                seguridad: 'Seguridad Ciudadana',
-                emergencias: 'Emergencias Viales',
-                ambiente: 'Problemas Ambientales'
+                infraestructura_urbana: 'Infraestructura Urbana',
+                servicios_publicos: 'Servicios Públicos',
+                seguridad_ciudadana: 'Seguridad Ciudadana',
+                emergencias_viales: 'Emergencias Viales',
+                problemas_ambientales: 'Problemas Ambientales'
             };
             return names[categoryKey] || categoryKey;
         }
@@ -734,10 +954,43 @@
             goToStep(1);
         }
         
+        // Cambiar entre vistas (reportes/nuevo reporte)
+        function toggleView(view) {
+            if (view === 'reports') {
+                document.getElementById('reports-view').style.display = 'block';
+                document.getElementById('new-report-view').style.display = 'none';
+                document.getElementById('view-reports-btn').classList.add('active');
+                document.getElementById('new-report-btn').classList.remove('active');
+                
+                // Asegurar que el mapa de reportes se redibuje correctamente
+                setTimeout(() => {
+                    reportsMap.invalidateSize();
+                }, 100);
+            } else {
+                document.getElementById('reports-view').style.display = 'none';
+                document.getElementById('new-report-view').style.display = 'block';
+                document.getElementById('view-reports-btn').classList.remove('active');
+                document.getElementById('new-report-btn').classList.add('active');
+                
+                // Asegurar que el mapa del formulario se redibuje correctamente
+                setTimeout(() => {
+                    if (map) map.invalidateSize();
+                }, 100);
+            }
+        }
+        
         // Eventos al cargar la página
         document.addEventListener('DOMContentLoaded', function() {
-            // Inicializar mapa
-            initMap();
+            // Inicializar mapas
+            initReportsMap();
+            initNewReportMap();
+            
+            // Configurar botones de vista
+            document.getElementById('view-reports-btn').addEventListener('click', () => toggleView('reports'));
+            document.getElementById('new-report-btn').addEventListener('click', () => toggleView('new-report'));
+            
+            // Mostrar vista de reportes por defecto
+            toggleView('reports');
             
             // Selección de categoría
             document.querySelectorAll('.category-option').forEach(option => {
@@ -779,7 +1032,10 @@
             });
             
             // Nuevo reporte
-            document.getElementById('new-reporte').addEventListener('click', resetForm);
+            document.getElementById('new-reporte').addEventListener('click', function() {
+                resetForm();
+                toggleView('new-report');
+            });
             
             // Actualizar barra de progreso inicial
             updateProgressBar();
