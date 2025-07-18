@@ -221,7 +221,7 @@
                 mostrarMensaje('Cargando reportes...', 'info', 'reportes-tab');
                 
                 const { data: reportes, error } = await supabaseClient
-                    .from('reportes')
+                    .from('reporte')  // Cambiado de 'reportes' a 'reporte'
                     .select('*')
                     .order('created_at', { ascending: false });
                 
@@ -338,7 +338,7 @@
                 mostrarMensaje('Enviando reporte...', 'info');
                 
                 const { data, error } = await supabaseClient
-                    .from('reportes')
+                    .from('reporte')  // Cambiado de 'reportes' a 'reporte'
                     .insert([{
                         tipo: tipo,
                         descripcion: descripcion,
