@@ -1,144 +1,141 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Geoportal Interactivo - Reportes Ciudadanos</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Geoportal Ciudadano</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
-    body { margin: 0; font-family: sans-serif; }
-    #map { height: 100vh; }
-    #formulario {
-      position: absolute; top: 10px; left: 10px; z-index: 1000;
-      background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      width: 280px;
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #map { position:absolute; top:0; bottom:0; right:300px; left:0; }
+    #sidebar {
+      position:absolute;
+      top:0; bottom:0; right:0;
+      width:300px; background:#fff;
+      overflow:auto; padding:20px;
+      box-shadow:-2px 0 5px rgba(0,0,0,0.1);
     }
-    #formulario h3 { margin-top: 0; }
-    .layer-toggle {
-      position: absolute; top: 10px; right: 10px; background: white; z-index: 1000;
-      padding: 10px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    h2, h3 { margin:0 0 10px; }
+    label { display:block; margin:10px 0 5px; }
+    input, textarea, select, button {
+      width:100%; padding:8px; margin-bottom:10px;
+      border:1px solid #ccc; border-radius:4px;
+      box-sizing:border-box;
+      font-size:14px;
     }
+    button { background:#28a745; color:#fff; cursor:pointer; }
+    button:hover { background:#218838; }
+    .layer-toggle { margin:10px 0; }
+    .layer-toggle label { display:flex; align-items:center; margin-bottom:5px; }
+    .layer-toggle input { margin-right:8px; }
+    #reporteForm button[type=button] { background:#007bff; margin-top:5px; }
+    #reporteForm button[type=button]:hover { background:#0069d9; }
   </style>
 </head>
 <body>
 
-<div id="formulario">
-  <h3>Nuevo Reporte</h3>
-  <form id="reporteForm">
-    <label>Descripción:<br><textarea id="descripcion" required></textarea></label><br><br>
-    <label>Tipo de problema:</label><br>
-    <select id="problema" multiple size="6">
-      <option value="Fugas de agua">Fugas de agua</option>
-      <option value="Delincuencia">Delincuencia</option>
-      <option value="Vías en mal estado">Vías en mal estado</option>
-      <option value="Postes de luz deteriorados">Postes de luz deteriorados</option>
-      <option value="Cables caídos">Cables caídos</option>
-      <option value="Alcantarillas sin tapas">Alcantarillas sin tapas</option>
-    </select><br><br>
-    <button type="submit">Enviar Reporte</button>
-    <button type="button" onclick="cargarReportes()">Recargar</button>
-  </form>
-</div>
-
-<div class="layer-toggle">
-  <strong>Capas</strong><br>
-  <label><input type="checkbox" checked onchange="toggleLayer('ejes_viales')"> Ejes Viales</label><br>
-  <label><input type="checkbox" checked onchange="toggleLayer('parques')"> Parques</label><br>
-  <label><input type="checkbox" checked onchange="toggleLayer('parada_estacion')"> Paradas</label><br>
-  <label><input type="checkbox" checked onchange="toggleLayer('parr_rural_conali_a')"> Parroquia Rural</label><br>
-  <label><input type="checkbox" checked onchange="toggleLayer('parr_urbana_ord002_a')"> Parroquia Urbana</label>
-</div>
-
 <div id="map"></div>
+<div id="sidebar">
+  <h2>Reportes Ciudadanos</h2>
+  <form id="reporteForm">
+    <h3>Nuevo Reporte</h3>
+    <label>Nombre:</label>
+    <input type="text" id="nombre" placeholder="Tu nombre" required>
+
+    <label>Problemas (múltiple):</label>
+    <select id="problema" multiple size="6">
+      <option>Fugas de agua</option>
+      <option>Delincuencia</option>
+      <option>Vías en mal estado</option>
+      <option>Postes de luz deteriorados</option>
+      <option>Cables caídos</option>
+      <option>Alcantarillas sin tapas</option>
+    </select>
+
+    <label>Descripción:</label>
+    <textarea id="descripcion" placeholder="Describe el problema..." required></textarea>
+
+    <button type="submit">Enviar Reporte</button>
+    <button type="button" onclick="cargarReportes()">Recargar Reportes</button>
+  </form>
+
+  <div class="layer-toggle">
+    <h3>Capas</h3>
+    <label><input type="checkbox" checked onchange="toggleLayer('ejes_viales')"> Ejes Viales</label>
+    <label><input type="checkbox" checked onchange="toggleLayer('parques')"> Parques</label>
+    <label><input type="checkbox" checked onchange="toggleLayer('parada_estacion')"> Paradas</label>
+    <label><input type="checkbox" checked onchange="toggleLayer('parr_rural_conali_a')"> Parroquia Rural</label>
+    <label><input type="checkbox" checked onchange="toggleLayer('parr_urbana_ord002_a')"> Parroquia Urbana</label>
+  </div>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const map = L.map('map').setView([-0.22985, -78.52495], 13);
+  // Configuración Supabase
+  const supabaseUrl = 'https://dbshhxslvsvwmrcwxkls.supabase.co';
+  const supabaseKey = 'eyJh...JOEueo';
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
+  // Inicializar mapa
+  const map = L.map('map').setView([-0.22985, -78.52495], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// Configuración Supabase
-const supabaseUrl = 'https://dbshhxslvsvwmrcwxkls.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRic2hoeHNsdnN2d21yY3d4a2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4MTExMzYsImV4cCI6MjA2ODM4NzEzNn0.O-TNkvxS0W8XLzkxNxIl2HYqRlib5MLM8_XW8JOEueo';
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+  // Grupos para capas
+  const capas = {};
+  const nombres = ['ejes_viales','parques','parada_estacion','parr_rural_conali_a','parr_urbana_ord002_a'];
+  nombres.forEach(name => {
+    capas[name] = L.layerGroup().addTo(map);
+    cargarCapa(name);
+  });
 
-// Capas vectoriales
-const capas = {};
-const nombresCapas = ['ejes_viales', 'parques', 'parada_estacion', 'parr_rural_conali_a', 'parr_urbana_ord002_a'];
-
-nombresCapas.forEach(nombre => {
-  capas[nombre] = L.layerGroup().addTo(map);
-  cargarCapa(nombre);
-});
-
-async function cargarCapa(nombreTabla) {
-  const { data, error } = await supabase.from(nombreTabla).select('*');
-  if (data) {
-    capas[nombreTabla].clearLayers();
+  async function cargarCapa(tabla) {
+    const { data, error } = await supabase.from(tabla).select('*, geom');
+    if (error) return console.error(tabla, error);
+    capas[tabla].clearLayers();
     data.forEach(f => {
       if (f.geom?.coordinates) {
-        const tipo = f.geom.type;
-        if (tipo === 'Point') {
-          const [lon, lat] = f.geom.coordinates;
-          L.marker([lat, lon]).addTo(capas[nombreTabla]);
-        } else if (tipo === 'Polygon' || tipo === 'MultiPolygon') {
-          const coords = tipo === 'Polygon' ? [f.geom.coordinates] : f.geom.coordinates;
-          L.polygon(coords.map(r => r[0].map(([lon, lat]) => [lat, lon]))).addTo(capas[nombreTabla]);
-        }
+        const geo = f.geom, lat = geo.coordinates[1], lon = geo.coordinates[0];
+        L.marker([lat,lon]).addTo(capas[tabla]).bindPopup(`<b>${tabla}</b>`);
       }
     });
   }
-}
 
-function toggleLayer(nombre) {
-  if (map.hasLayer(capas[nombre])) {
-    map.removeLayer(capas[nombre]);
-  } else {
-    map.addLayer(capas[nombre]);
+  function toggleLayer(name) {
+    map.hasLayer(capas[name]) ? map.removeLayer(capas[name]) : map.addLayer(capas[name]);
   }
-}
 
-// Obtener ubicación actual
-map.locate({ setView: true, maxZoom: 16 });
-let ubicacionActual = null;
-map.on('locationfound', e => ubicacionActual = e.latlng);
+  // Reportes
+  const capaReportes = L.layerGroup().addTo(map);
+  let ubicacionActual = null;
+  map.locate({ setView: true, maxZoom: 16 });
+  map.on('locationfound', e => ubicacionActual = e.latlng);
 
-// Enviar nuevo reporte
-const form = document.getElementById('reporteForm');
-form.addEventListener('submit', async e => {
-  e.preventDefault();
-  const descripcion = document.getElementById('descripcion').value;
-  const problema = Array.from(document.getElementById('problema').selectedOptions).map(opt => opt.value);
-  if (!ubicacionActual) return alert('Ubicación no detectada');
-  const geom = { type: 'Point', coordinates: [ubicacionActual.lng, ubicacionActual.lat] };
-  const { error } = await supabase.from('reportes').insert({ descripcion, tipo: problema.join(', '), geom });
-  if (!error) {
-    alert('Reporte enviado');
-    form.reset();
-    cargarReportes();
-  }
-});
-
-// Cargar todos los reportes
-const capaReportes = L.layerGroup().addTo(map);
-async function cargarReportes() {
-  const { data } = await supabase.from('reportes').select('*');
-  capaReportes.clearLayers();
-  if (data) {
+  async function cargarReportes() {
+    const { data } = await supabase.from('reportes').select('*, geom');
+    capaReportes.clearLayers();
     data.forEach(r => {
-      const { descripcion, tipo, geom } = r;
-      if (geom?.coordinates) {
-        const [lon, lat] = geom.coordinates;
-        L.marker([lat, lon]).addTo(capaReportes).bindPopup(`<strong>${tipo}</strong><br>${descripcion}`);
-      }
+      const [lon,lat] = r.geom.coordinates;
+      L.marker([lat,lon]).addTo(capaReportes)
+        .bindPopup(`<b>${r.nombre}</b><br>${r.tipo}<br>${r.descripcion}`);
     });
   }
-}
-cargarReportes();
-</script>
 
+  cargarReportes();
+
+  document.getElementById('reporteForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const nombre = document.getElementById('nombre').value;
+    const descripcion = document.getElementById('descripcion').value;
+    const problema = Array.from(document.getElementById('problema').selectedOptions).map(o=>o.value).join(', ');
+    if (!ubicacionActual) return alert('Activa tu ubicación.');
+    const geom = { type:'Point', coordinates:[ubicacionActual.lng,ubicacionActual.lat] };
+    const { error } = await supabase.from('reportes').insert({ nombre, tipo:problema, descripcion, geom });
+    if (error) console.error(error), alert('Error');
+    else alert('Reporte enviado!'), cargarReportes();
+  });
+</script>
 </body>
 </html>
