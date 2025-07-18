@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal Supabase</title>
+    <title>Geoportal de Reportes - Quito</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- Font Awesome -->
@@ -22,120 +22,145 @@
             background: rgba(255, 255, 255, 0.95);
             padding: 15px;
             border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
-            width: 300px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            width: 350px;
             max-height: 90vh;
             overflow-y: auto;
         }
         
         /* Pestañas */
-        .tabs { display: flex; margin-bottom: 15px; }
+        .tabs { display: flex; margin-bottom: 15px; border-bottom: 1px solid #ddd; }
         .tab-btn {
-            padding: 8px 15px;
-            background: #f0f0f0;
+            padding: 10px 15px;
+            background: none;
             border: none;
-            border-radius: 5px 5px 0 0;
+            border-bottom: 3px solid transparent;
             cursor: pointer;
-            margin-right: 5px;
             font-weight: 600;
+            color: #555;
+            transition: all 0.3s;
         }
         .tab-btn.active {
-            background: #4CAF50;
-            color: white;
+            color: #2c3e50;
+            border-bottom: 3px solid #4CAF50;
         }
         
         /* Contenido de pestañas */
-        .tab-content { display: none; }
+        .tab-content { display: none; padding: 10px 0; }
         .tab-content.active { display: block; }
         
         /* Formulario */
-        .form-group { margin-bottom: 12px; }
-        label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 500; color: #333; }
         input, select, textarea {
             width: 100%;
-            padding: 8px;
+            padding: 10px;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 5px;
+            font-size: 14px;
         }
+        textarea { min-height: 100px; resize: vertical; }
         button {
             background: #4CAF50;
             color: white;
             border: none;
-            padding: 10px;
-            border-radius: 4px;
+            padding: 12px;
+            border-radius: 5px;
             cursor: pointer;
-            width: 100%;
             font-weight: 600;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        button:hover { background: #45a049; }
+        button:hover { background: #3e8e41; }
+        button.secondary {
+            background: #3498db;
+        }
+        button.secondary:hover {
+            background: #2980b9;
+        }
         
-        /* Capas */
-        .layer-control { margin: 8px 0; }
+        /* Mensajes */
+        .message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
+        .message.success { background: #d4edda; color: #155724; }
+        .message.error { background: #f8d7da; color: #721c24; }
+        .message.info { background: #d1ecf1; color: #0c5460; }
         
-        /* Estilos para marcadores */
-        .parque-marker { background: #2ecc71; border-radius: 50%; }
-        .eje-marker { background: #e74c3c; border-radius: 50%; }
-        .report-marker { background: #9b59b6; border-radius: 50%; }
+        /* Ubicación seleccionada */
+        .location-info {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            border: 1px solid #eee;
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
     
     <div class="control-panel">
-        <h1><i class="fas fa-map-marked-alt"></i> Geoportal</h1>
+        <h1 style="margin-bottom: 10px; color: #2c3e50;">
+            <i class="fas fa-map-marked-alt" style="color: #4CAF50;"></i> Geoportal Quito
+        </h1>
         
         <div class="tabs">
-            <button class="tab-btn active" data-tab="layers"><i class="fas fa-layer-group"></i> Capas</button>
-            <button class="tab-btn" data-tab="report"><i class="fas fa-plus-circle"></i> Reportar</button>
+            <button class="tab-btn active" data-tab="reportar">
+                <i class="fas fa-plus-circle"></i> Reportar
+            </button>
+            <button class="tab-btn" data-tab="reportes">
+                <i class="fas fa-list"></i> Reportes
+            </button>
         </div>
         
-        <!-- Pestaña de Capas -->
-        <div id="layers-tab" class="tab-content active">
-            <h3><i class="fas fa-filter"></i> Filtros</h3>
-            <div class="layer-control">
-                <input type="checkbox" id="ejes-viales" checked>
-                <label for="ejes-viales">Ejes Viales</label>
-            </div>
-            <div class="layer-control">
-                <input type="checkbox" id="parques" checked>
-                <label for="parques">Parques</label>
-            </div>
-            <div class="layer-control">
-                <input type="checkbox" id="paradas" checked>
-                <label for="paradas">Paradas de Estación</label>
-            </div>
-            <div class="layer-control">
-                <input type="checkbox" id="rural" checked>
-                <label for="rural">Áreas Rurales</label>
-            </div>
-            <div class="layer-control">
-                <input type="checkbox" id="urbana" checked>
-                <label for="urbana">Áreas Urbanas</label>
-            </div>
-            <div class="layer-control">
-                <input type="checkbox" id="reportes" checked>
-                <label for="reportes">Reportes</label>
-            </div>
-        </div>
-        
-        <!-- Pestaña de Reportes -->
-        <div id="report-tab" class="tab-content">
-            <h3><i class="fas fa-edit"></i> Nuevo Reporte</h3>
+        <!-- Pestaña de Reportar -->
+        <div id="reportar-tab" class="tab-content active">
             <div class="form-group">
-                <label for="tipo-reporte">Tipo</label>
+                <label for="tipo-reporte">Tipo de Reporte</label>
                 <select id="tipo-reporte">
-                    <option value="daño">Daño en infraestructura</option>
-                    <option value="seguridad">Problema de seguridad</option>
-                    <option value="mantenimiento">Necesidad de mantenimiento</option>
+                    <option value="incidente">Incidente</option>
+                    <option value="mantenimiento">Mantenimiento</option>
+                    <option value="seguridad">Seguridad</option>
                     <option value="otro">Otro</option>
                 </select>
             </div>
+            
             <div class="form-group">
                 <label for="descripcion">Descripción</label>
-                <textarea id="descripcion" rows="3" placeholder="Describa el problema..."></textarea>
+                <textarea id="descripcion" placeholder="Describa el problema con detalle..."></textarea>
             </div>
-            <button id="enviar-reporte"><i class="fas fa-paper-plane"></i> Enviar Reporte</button>
-            <div id="mensaje-estado" style="margin-top:10px; display:none;"></div>
+            
+            <div id="ubicacion-info" class="location-info" style="display: none;">
+                <i class="fas fa-map-marker-alt"></i> <span id="coordenadas-texto"></span>
+            </div>
+            
+            <button id="enviar-reporte">
+                <i class="fas fa-paper-plane"></i> Enviar Reporte
+            </button>
+            
+            <div id="mensaje-estado" class="message"></div>
+        </div>
+        
+        <!-- Pestaña de Reportes -->
+        <div id="reportes-tab" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0;"><i class="fas fa-history"></i> Reportes Recientes</h3>
+                <button id="actualizar-reportes" class="secondary" style="padding: 8px 12px;">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            
+            <div id="lista-reportes" style="max-height: 300px; overflow-y: auto;">
+                <p style="text-align: center; color: #777;">Cargando reportes...</p>
+            </div>
         </div>
     </div>
 
@@ -146,138 +171,89 @@
     
     <script>
         // ================= CONFIGURACIÓN =================
-        const supabaseUrl = 'https://dbshhxslvsvwmrcwxkls.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRic2hoeHNsdnN2d21yY3d4a2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4MTExMzYsImV4cCI6MjA2ODM4NzEzNn0.O-TNkvxS0W8XLzkxNxIl2HYqRlib5MLM8_XW8JOEueo';
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        const SUPABASE_URL = 'https://dbshhxslvsvwmrcwxkls.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRic2hoeHNsdnN2d21yY3d4a2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4MTExMzYsImV4cCI6MjA2ODM4NzEzNn0.O-TNkvxS0W8XLzkxNxIl2HYqRlib5MLM8_XW8JOEueo';
+        
+        // Coordenadas de Quito (centro del mapa)
+        const CENTRO_QUITO = [-0.2295, -78.5249];
+        const ZOOM_INICIAL = 12;
         
         // Variables globales
         let map;
-        let capas = {
-            ejes_viales: null,
-            parques: null,
-            parada_estacion: null,
-            parr_rural_conali_a: null,
-            parr_urbana_ord002_a: null,
-            reportes: null
-        };
-        let coordenadasActuales = null;
+        let capaReportes;
+        let marcadorTemporal = null;
+        let ubicacionSeleccionada = null;
+        let supabaseClient;
         
         // ================= INICIALIZACIÓN =================
         function initMap() {
-            // Crear mapa centrado en Bogotá
-            map = L.map('map').setView([4.6097, -74.0817], 13);
+            // Crear mapa centrado en Quito
+            map = L.map('map').setView(CENTRO_QUITO, ZOOM_INICIAL);
             
-            // Añadir capa base de OpenStreetMap
+            // Capa base de OpenStreetMap
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             }).addTo(map);
             
-            // Cargar capas desde Supabase
-            cargarCapas();
+            // Inicializar Supabase
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            
+            // Cargar reportes iniciales
+            cargarReportes();
             
             // Configurar eventos
             configurarEventos();
+            
+            // Evento para hacer clic en el mapa
+            map.on('click', function(e) {
+                seleccionarUbicacion(e.latlng);
+                cambiarPestaña('reportar');
+            });
         }
         
-        // ================= CARGA DE CAPAS =================
-        async function cargarCapas() {
+        // ================= FUNCIONES PRINCIPALES =================
+        async function cargarReportes() {
             try {
-                // 1. Cargar ejes viales (líneas)
-                const { data: ejesData } = await supabase.from('ejes_viales').select('*');
-                if (ejesData) {
-                    capas.ejes_viales = L.geoJSON(ejesData, {
-                        style: { color: '#e74c3c', weight: 3 }
-                    }).addTo(map);
-                }
+                // Mostrar carga en lista
+                document.getElementById('lista-reportes').innerHTML = '<p style="text-align: center; color: #777;">Cargando reportes...</p>';
                 
-                // 2. Cargar parques (polígonos)
-                const { data: parquesData } = await supabase.from('parques').select('*');
-                if (parquesData) {
-                    capas.parques = L.geoJSON(parquesData, {
-                        style: { 
-                            color: '#2ecc71', 
-                            fillColor: '#27ae60', 
-                            fillOpacity: 0.5, 
-                            weight: 2 
-                        }
-                    }).addTo(map);
-                }
+                const { data: reportes, error } = await supabaseClient
+                    .from('reportes')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(50);
                 
-                // 3. Cargar paradas de estación (puntos)
-                const { data: paradasData } = await supabase.from('parada_estacion').select('*');
-                if (paradasData) {
-                    capas.parada_estacion = L.geoJSON(paradasData, {
-                        pointToLayer: (feature, latlng) => {
-                            return L.circleMarker(latlng, {
-                                radius: 6,
-                                color: '#3498db',
-                                fillColor: '#2980b9',
-                                className: 'parada-marker'
-                            }).bindPopup(`<b>Parada:</b> ${feature.properties?.nombre || 'N/A'}`);
-                        }
-                    }).addTo(map);
-                }
+                if (error) throw error;
                 
-                // 4. Cargar áreas rurales (polígonos)
-                const { data: ruralData } = await supabase.from('parr_rural_conali_a').select('*');
-                if (ruralData) {
-                    capas.parr_rural_conali_a = L.geoJSON(ruralData, {
-                        style: { 
-                            color: '#8b4513', 
-                            fillColor: '#d2b48c', 
-                            fillOpacity: 0.4, 
-                            weight: 1 
-                        }
-                    }).addTo(map);
-                }
+                // Actualizar mapa
+                actualizarCapaReportes(reportes);
                 
-                // 5. Cargar áreas urbanas (polígonos)
-                const { data: urbanaData } = await supabase.from('parr_urbana_ord002_a').select('*');
-                if (urbanaData) {
-                    capas.parr_urbana_ord002_a = L.geoJSON(urbanaData, {
-                        style: { 
-                            color: '#9b59b6', 
-                            fillColor: '#8e44ad', 
-                            fillOpacity: 0.4, 
-                            weight: 1 
-                        }
-                    }).addTo(map);
-                }
-                
-                // Cargar reportes existentes
-                await cargarReportes();
-                
-                // Configurar eventos de checkboxes
-                document.getElementById('ejes-viales').addEventListener('change', (e) => {
-                    e.target.checked ? map.addLayer(capas.ejes_viales) : map.removeLayer(capas.ejes_viales);
-                });
-                
-                document.getElementById('parques').addEventListener('change', (e) => {
-                    e.target.checked ? map.addLayer(capas.parques) : map.removeLayer(capas.parques);
-                });
-                
-                // ... (similar para otras capas)
+                // Actualizar lista
+                actualizarListaReportes(reportes);
                 
             } catch (error) {
-                console.error("Error cargando capas:", error);
-                alert("Error al cargar datos. Ver consola para detalles.");
+                console.error('Error cargando reportes:', error);
+                mostrarMensaje('Error al cargar reportes', 'error');
             }
         }
         
-        // ================= REPORTES =================
-        async function cargarReportes() {
-            const { data, error } = await supabase.from('reportes').select('*');
-            if (data) {
-                capas.reportes = L.geoJSON(data, {
-                    pointToLayer: (feature, latlng) => {
+        function actualizarCapaReportes(reportes) {
+            // Eliminar capa anterior si existe
+            if (capaReportes) {
+                map.removeLayer(capaReportes);
+            }
+            
+            if (reportes && reportes.length > 0) {
+                capaReportes = L.geoJSON(reportes, {
+                    pointToLayer: function(feature, latlng) {
                         return L.circleMarker(latlng, {
                             radius: 8,
                             color: '#e74c3c',
                             fillColor: '#c0392b',
-                            className: 'report-marker'
+                            fillOpacity: 0.8
                         }).bindPopup(`
-                            <b>Tipo:</b> ${feature.tipo}<br>
-                            <b>Descripción:</b> ${feature.descripcion}<br>
+                            <b>${feature.tipo.toUpperCase()}</b><br>
+                            ${feature.descripcion}<br>
                             <small>${new Date(feature.created_at).toLocaleString()}</small>
                         `);
                     }
@@ -285,73 +261,167 @@
             }
         }
         
+        function actualizarListaReportes(reportes) {
+            const lista = document.getElementById('lista-reportes');
+            
+            if (!reportes || reportes.length === 0) {
+                lista.innerHTML = '<p style="text-align: center; color: #777;">No hay reportes registrados</p>';
+                return;
+            }
+            
+            lista.innerHTML = '';
+            
+            reportes.forEach(reporte => {
+                const item = document.createElement('div');
+                item.style.padding = '10px';
+                item.style.borderBottom = '1px solid #eee';
+                item.style.cursor = 'pointer';
+                
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between;">
+                        <strong style="color: #e74c3c;">${reporte.tipo.toUpperCase()}</strong>
+                        <small style="color: #777;">${new Date(reporte.created_at).toLocaleString()}</small>
+                    </div>
+                    <p style="margin: 5px 0; color: #333;">${reporte.descripcion}</p>
+                    <small style="color: #3498db;">
+                        <i class="fas fa-map-marker-alt"></i> 
+                        ${reporte.geom.coordinates[1].toFixed(4)}, ${reporte.geom.coordinates[0].toFixed(4)}
+                    </small>
+                `;
+                
+                item.addEventListener('click', () => {
+                    map.setView([reporte.geom.coordinates[1], reporte.geom.coordinates[0]], 16);
+                    if (capaReportes) {
+                        capaReportes.eachLayer(layer => {
+                            if (layer.feature.id === reporte.id) {
+                                layer.openPopup();
+                            }
+                        });
+                    }
+                });
+                
+                lista.appendChild(item);
+            });
+        }
+        
         async function enviarReporte() {
             const tipo = document.getElementById('tipo-reporte').value;
             const descripcion = document.getElementById('descripcion').value;
-            const mensaje = document.getElementById('mensaje-estado');
             
             if (!descripcion) {
-                mensaje.textContent = "Por favor ingresa una descripción";
-                mensaje.style.color = "red";
-                mensaje.style.display = "block";
+                mostrarMensaje('Por favor ingresa una descripción', 'error');
+                return;
+            }
+            
+            if (!ubicacionSeleccionada) {
+                mostrarMensaje('Por favor selecciona una ubicación en el mapa', 'error');
                 return;
             }
             
             try {
-                mensaje.textContent = "Enviando reporte...";
-                mensaje.style.color = "blue";
-                mensaje.style.display = "block";
+                mostrarMensaje('Enviando reporte...', 'info');
                 
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('reportes')
                     .insert([{
                         tipo: tipo,
                         descripcion: descripcion,
-                        geom: `POINT(${coordenadasActuales.lng} ${coordenadasActuales.lat})`,
+                        geom: {
+                            type: 'Point',
+                            coordinates: [ubicacionSeleccionada.lng, ubicacionSeleccionada.lat]
+                        },
                         estado: 'pendiente'
                     }])
                     .select();
                 
                 if (error) throw error;
                 
-                mensaje.textContent = "¡Reporte enviado con éxito!";
-                mensaje.style.color = "green";
-                
-                // Actualizar capa de reportes
-                if (capas.reportes) map.removeLayer(capas.reportes);
-                await cargarReportes();
+                mostrarMensaje('Reporte enviado con éxito', 'success');
                 
                 // Limpiar formulario
                 document.getElementById('descripcion').value = '';
+                eliminarMarcadorTemporal();
+                ubicacionSeleccionada = null;
+                document.getElementById('ubicacion-info').style.display = 'none';
+                
+                // Actualizar reportes
+                await cargarReportes();
                 
             } catch (error) {
-                console.error("Error enviando reporte:", error);
-                mensaje.textContent = "Error al enviar. Intenta nuevamente.";
-                mensaje.style.color = "red";
+                console.error('Error enviando reporte:', error);
+                mostrarMensaje('Error al enviar reporte', 'error');
+            }
+        }
+        
+        function seleccionarUbicacion(latlng) {
+            ubicacionSeleccionada = latlng;
+            
+            // Eliminar marcador anterior si existe
+            eliminarMarcadorTemporal();
+            
+            // Crear nuevo marcador
+            marcadorTemporal = L.marker(latlng, {
+                icon: L.divIcon({
+                    className: 'marcador-temporal',
+                    html: '<i class="fas fa-map-marker-alt" style="color: #e74c3c; font-size: 24px;"></i>',
+                    iconSize: [24, 24]
+                }),
+                zIndexOffset: 1000
+            }).addTo(map);
+            
+            // Mostrar información de ubicación
+            document.getElementById('coordenadas-texto').textContent = 
+                `${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`;
+            document.getElementById('ubicacion-info').style.display = 'block';
+        }
+        
+        function eliminarMarcadorTemporal() {
+            if (marcadorTemporal) {
+                map.removeLayer(marcadorTemporal);
+                marcadorTemporal = null;
             }
         }
         
         // ================= EVENTOS =================
         function configurarEventos() {
-            // Cambio de pestañas
+            // Botones de pestañas
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    
-                    btn.classList.add('active');
-                    document.getElementById(btn.dataset.tab + '-tab').classList.add('active');
+                    cambiarPestaña(btn.dataset.tab);
                 });
-            });
-            
-            // Click en el mapa para reportar
-            map.on('click', function(e) {
-                coordenadasActuales = e.latlng;
-                document.querySelector('[data-tab="report"]').click();
             });
             
             // Botón de enviar reporte
             document.getElementById('enviar-reporte').addEventListener('click', enviarReporte);
+            
+            // Botón de actualizar reportes
+            document.getElementById('actualizar-reportes').addEventListener('click', cargarReportes);
+        }
+        
+        function cambiarPestaña(tab) {
+            // Actualizar botones
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+            
+            // Actualizar contenido
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.toggle('active', content.id === `${tab}-tab`);
+            });
+        }
+        
+        function mostrarMensaje(texto, tipo) {
+            const mensaje = document.getElementById('mensaje-estado');
+            mensaje.textContent = texto;
+            mensaje.className = `message ${tipo}`;
+            mensaje.style.display = 'block';
+            
+            // Ocultar mensaje después de 5 segundos (excepto errores)
+            if (tipo !== 'error') {
+                setTimeout(() => {
+                    mensaje.style.display = 'none';
+                }, 5000);
+            }
         }
         
         // Iniciar cuando se cargue la página
