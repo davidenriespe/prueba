@@ -225,6 +225,7 @@
         
         #map-container {
             height: 400px;
+            width: 100%;
             border-radius: 8px;
             overflow: hidden;
             margin-top: 20px;
@@ -232,6 +233,24 @@
         }
         
         #map {
+            height: 100%;
+            width: 100%;
+            transition: opacity 0.3s;
+        }
+        
+        #map.leaflet-container {
+            opacity: 1;
+        }
+        
+        #reports-map-container {
+            height: 600px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+        }
+        
+        #reports-map {
             height: 100%;
             width: 100%;
         }
@@ -340,6 +359,10 @@
             
             .form-steps {
                 padding: 20px;
+            }
+            
+            #reports-map-container {
+                height: 400px;
             }
         }
     </style>
@@ -603,13 +626,14 @@
             problemas_ambientales: '#2ecc71'    // Verde
         };
         
-        // Inicialización del mapa de reportes
+        // Inicialización del mapa de reportes (centrado en Ecuador)
         function initReportsMap() {
-            // Coordenadas del centro de Quito
-            const quitoCenter = [-0.2295, -78.5249];
+            // Coordenadas centrales de Ecuador y zoom para ver todo el país
+            const ecuadorCenter = [-1.8312, -78.1834];
+            const zoomLevel = 6;
             
             // Crear mapa
-            reportsMap = L.map('reports-map').setView(quitoCenter, 13);
+            reportsMap = L.map('reports-map').setView(ecuadorCenter, zoomLevel);
             
             // Añadir capa base
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -645,13 +669,23 @@
             loadExistingReports();
         }
         
-        // Inicialización del mapa para nuevo reporte
+        // Inicialización del mapa para nuevo reporte (centrado en Quito)
         function initNewReportMap() {
+            // Solo inicializar si no existe ya
+            if (map) {
+                // Si el mapa ya existe, solo redimensionarlo
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 100);
+                return;
+            }
+            
             // Coordenadas del centro de Quito
             const quitoCenter = [-0.2295, -78.5249];
+            const zoomLevel = 12;
             
             // Crear mapa
-            map = L.map('map').setView(quitoCenter, 14);
+            map = L.map('map').setView(quitoCenter, zoomLevel);
             
             // Añadir capa base
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -662,6 +696,11 @@
             map.on('click', function(e) {
                 setLocation(e.latlng);
             });
+            
+            // Asegurar que el mapa se redibuje correctamente
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 100);
         }
         
         // Cargar reportes existentes desde Supabase
@@ -678,23 +717,25 @@
                     continue;
                 }
                 
-                data.forEach(reporte => {
-                    if (reporte.geom && reporte.geom.coordinates) {
-                        const coords = reporte.geom.coordinates;
-                        const marker = L.circleMarker([coords[1], coords[0]], {
-                            color: categoryColors[tabla],
-                            radius: 6,
-                            fillOpacity: 0.7
-                        }).addTo(markersLayer);
-                        
-                        let popupContent = `<strong>${getCategoryName(tabla)}</strong>`;
-                        if (reporte.subcategoria) popupContent += `<br><em>${reporte.subcategoria}</em>`;
-                        if (reporte.descripcion) popupContent += `<br>${reporte.descripcion}`;
-                        if (reporte.fecha_reporte) popupContent += `<br><small>Reportado el ${new Date(reporte.fecha_reporte).toLocaleDateString()}</small>`;
-                        
-                        marker.bindPopup(popupContent);
-                    }
-                });
+                if (data) {
+                    data.forEach(reporte => {
+                        if (reporte.geom && reporte.geom.coordinates) {
+                            const coords = reporte.geom.coordinates;
+                            const marker = L.circleMarker([coords[1], coords[0]], {
+                                color: categoryColors[tabla],
+                                radius: 6,
+                                fillOpacity: 0.7
+                            }).addTo(markersLayer);
+                            
+                            let popupContent = `<strong>${getCategoryName(tabla)}</strong>`;
+                            if (reporte.subcategoria) popupContent += `<br><em>${reporte.subcategoria}</em>`;
+                            if (reporte.descripcion) popupContent += `<br>${reporte.descripcion}`;
+                            if (reporte.fecha_reporte) popupContent += `<br><small>Reportado el ${new Date(reporte.fecha_reporte).toLocaleDateString()}</small>`;
+                            
+                            marker.bindPopup(popupContent);
+                        }
+                    });
+                }
             }
         }
         
@@ -797,6 +838,11 @@
                 loadSubcategories();
             }
             
+            if (currentStep === 5) {
+                // Inicializar el mapa solo cuando llegamos al paso 5
+                initNewReportMap();
+            }
+            
             if (currentStep === 6) {
                 showConfirmation();
             }
@@ -872,7 +918,7 @@
                     const fileName = `${selectedCategory}_${Date.now()}_${file.name}`;
                     
                     // Subir la foto al almacenamiento
-                    const { error: uploadError } = await supabase.storage
+                    const { data: uploadData, error: uploadError } = await supabase.storage
                         .from('reportes-fotos')
                         .upload(fileName, file);
                     
@@ -883,6 +929,8 @@
                             .getPublicUrl(fileName);
                         
                         reportData.foto_url = urlData.publicUrl;
+                    } else {
+                        console.error('Error al subir foto:', uploadError);
                     }
                 }
                 
@@ -893,7 +941,7 @@
                     .select();
                 
                 if (error) {
-                    console.error('Error al enviar reporte:', error.message);
+                    console.error('Error al enviar reporte:', error);
                     alert('Hubo un error al enviar tu reporte. Por favor intenta nuevamente.');
                 } else {
                     console.log('Reporte enviado con éxito:', data);
@@ -981,9 +1029,8 @@
         
         // Eventos al cargar la página
         document.addEventListener('DOMContentLoaded', function() {
-            // Inicializar mapas
+            // Inicializar solo el mapa de reportes
             initReportsMap();
-            initNewReportMap();
             
             // Configurar botones de vista
             document.getElementById('view-reports-btn').addEventListener('click', () => toggleView('reports'));
@@ -1043,4 +1090,3 @@
     </script>
 </body>
 </html>
-
